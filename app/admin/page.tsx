@@ -106,7 +106,7 @@ export default async function AdminOverviewPage() {
                     <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', margin: '1px 0 0' }}>{f.email}</p>
                   </td>
                   <td style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', padding: '10px 0' }}>{f.childCount}</td>
-                  <td style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', padding: '10px 0' }}>{f.totalCompletions}</td>
+                  <td style={{ fontSize: 14, color: 'rgba(255,255,255,0.7)', padding: '10px 0' }}>{(f as any).totalCompletions ?? 0}</td>
                   <td style={{ padding: '10px 0' }}>
                     {f.maxWeekCompleted > 0 ? (
                       <span style={{ fontSize: 12, background: f.programsComplete > 0 ? '#00875A' : 'rgba(255,255,255,0.08)', color: f.programsComplete > 0 ? '#fff' : 'rgba(255,255,255,0.7)', padding: '3px 10px', borderRadius: 999, fontWeight: 700 }}>
