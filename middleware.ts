@@ -85,7 +85,7 @@ export default withAuth(
         return !!token
       },
     },
-    pages: { signIn: '/auth/login' },
+    pages: { signIn: '/auth/login', },
   }
 )
 
