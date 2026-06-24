@@ -1,6 +1,5 @@
 'use client'
 import { Suspense, useEffect } from 'react'
-import { signIn } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 
 function LoginRedirect() {
@@ -8,7 +7,7 @@ function LoginRedirect() {
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
 
   useEffect(() => {
-    signIn('google', { callbackUrl })
+    window.location.href = `/api/auth/signin/google?callbackUrl=${encodeURIComponent(callbackUrl)}`
   }, [callbackUrl])
 
   return (
