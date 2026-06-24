@@ -51,8 +51,8 @@ export default function LoginPage() {
             {error && <p style={{ fontSize: 12, color: '#FF5C35', margin: '0 0 12px' }}>{error}</p>}
             <button
               onClick={checkCode}
-              disabled={checking || !inviteCode.trim()}
-              style={{ width: '100%', padding: '16px 22px', background: inviteCode.trim() ? '#FF5C35' : 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: inviteCode.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}
+              disabled={checking}
+              style={{ width: '100%', padding: '16px 22px', background: inviteCode.trim() ? '#FF5C35' : 'rgba(255,255,255,0.1)', color: '#fff', border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: checking ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
             >
               {checking ? 'Checking...' : 'Continue →'}
             </button>
