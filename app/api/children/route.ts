@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     userId: session.user.id,
     userName: session.user.name ?? null,
     childData: body,
-    inviteCode: body.inviteCode,
+    inviteCode: body.inviteCode as string | undefined,
     isNewFamily: !existingFamily,
     existingFamilyId: existingFamily?.id,
   })
