@@ -10,24 +10,12 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [codeValid, setCodeValid] = useState(false)
 
-  async function checkCode() {
-    if (!inviteCode.trim()) return
-    setChecking(true)
-    setError('')
-    const res = await fetch('/api/invite', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: inviteCode }),
-    })
-    const data = await res.json()
-    setChecking(false)
-    if (data.valid) {
-      setCodeValid(true)
-      sessionStorage.setItem('rf_invite', inviteCode)
-    } else {
-      setError(data.error || 'Invalid code')
-    }
-  }
+function checkCode() {
+  const input = document.querySelector('input[type="text"]') as HTMLInputElement
+  const code = input ? input.value.trim() : ''
+  if (!code) return
+  window.location.href = `/join/${code}`
+}
 
   return (
     <div style={{ minHeight: '100vh', background: '#0F2645', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
