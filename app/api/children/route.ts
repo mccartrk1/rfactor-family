@@ -43,7 +43,7 @@ export async function GET() {
           mascot: true,
           bestFriend: true,
           siblings: true,
-        },
+        } as any,
       },
     },
   })
