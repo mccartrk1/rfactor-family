@@ -93,6 +93,6 @@ export async function DELETE(req: NextRequest) {
   }
 
   logAdminAccess('delete_invite_code', session.user.email!, `id=${id}`)
-  await db.inviteCode.delete({ where: { id } })
+ await db.inviteCode.delete({ where: { id: id as string } })
   return NextResponse.json({ ok: true })
 }
