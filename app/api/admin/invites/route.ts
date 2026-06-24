@@ -86,7 +86,7 @@ export async function DELETE(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
 
   // Don't delete used codes — they're audit records
-  const existing = await db.inviteCode.findUnique({ where: { id } })
+  const existing = await db.inviteCode.findUnique({ where: { id: id as string } })
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (existing.usedAt) {
     return NextResponse.json({ error: 'Cannot delete a used invite code' }, { status: 400 })
