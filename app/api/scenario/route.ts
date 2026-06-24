@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Ownership check — verifies child belongs to this user
-  const child = await childRepository.findByIdForUser(childId, session.user.id)
+  const child = await childRepository.findByIdForUser(childId, session.user.id as string)
   if (!child) {
     return NextResponse.json({ error: 'Child not found' }, { status: 404 })
   }
