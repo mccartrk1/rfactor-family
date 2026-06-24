@@ -95,5 +95,4 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(result, { status: result.ok ? 200 : 400 })
 }
 
-// Export for use in email template generation
-export { signToken as generateUnsubscribeToken }
+
