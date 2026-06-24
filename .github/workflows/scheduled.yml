@@ -1,0 +1,57 @@
+# .github/workflows/scheduled.yml
+# Weekly dependency audit + test regression check.
+# Runs every Monday at 9am EST (14:00 UTC).
+# Catches new CVEs introduced by dependency updates between deployments.
+
+name: Weekly Maintenance
+
+on:
+  schedule:
+    - cron: '0 14 * * 1'   # Monday 9am EST
+  workflow_dispatch:          # also triggerable manually
+
+jobs:
+  dependency-audit:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: 'npm'
+      - run: npm ci
+      - name: Audit for new CVEs
+        run: |
+          npm audit --audit-level=moderate --json > audit-report.json 2>&1 || true
+          node -e "
+            const r = require('./audit-report.json')
+            const meta = r.metadata?.vulnerabilities ?? {}
+            const critical = meta.critical ?? 0
+            const high = meta.high ?? 0
+            console.log('Audit results:')
+            console.log('  Critical:', critical)
+            console.log('  High:', high)
+            console.log('  Moderate:', meta.moderate ?? 0)
+            if (critical > 0 || high > 0) {
+              console.error('New high/critical CVEs found — review immediately')
+              process.exit(1)
+            }
+          "
+
+  regression-test:
+    name: Test Suite Regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: 'npm'
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm test
+        env:
+          DATABASE_URL: "postgresql://fake:fake@localhost:5432/fake"
+          NEXTAUTH_SECRET: "ci-test-secret"
+          ANTHROPIC_API_KEY: "sk-ant-fake"

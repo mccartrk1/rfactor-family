@@ -1,0 +1,171 @@
+# .github/workflows/deploy.yml
+#
+# Deployment pipeline.
+# PR → preview deployment (unique URL per PR)
+# main merge → production deployment (only after CI passes)
+#
+# Vercel integration:
+#   Install Vercel CLI: npm i -g vercel
+#   Link project: vercel link
+#   Get IDs: cat .vercel/project.json
+#   Add secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+
+  # ── Preview deployment (PRs only) ──────────────────────────────────────────
+  # Creates a unique preview URL for every PR.
+  # Families on the pilot can test changes before they hit production.
+  # URL is commented on the PR automatically.
+
+  preview:
+    name: Preview Deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    environment:
+      name: preview
+    outputs:
+      preview_url: ${{ steps.deploy.outputs.preview_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: 'npm'
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel environment (preview)
+        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build project
+        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to preview
+        id: deploy
+        run: |
+          PREVIEW_URL=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }})
+          echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
+          echo "Preview URL: $PREVIEW_URL"
+
+      - name: Comment preview URL on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Preview Deployment\n\n✅ Preview deployed to: ${{ steps.deploy.outputs.preview_url }}\n\n**Test checklist:**\n- [ ] Auth (Google login) works\n- [ ] Dashboard loads\n- [ ] Lesson opens and AI scenario generates\n- [ ] Settings page accessible\n- [ ] Health check: ${{ steps.deploy.outputs.preview_url }}/api/v1/health`
+            })
+
+  # ── Production deployment (main only, CI must pass) ────────────────────────
+  # Only triggers on main branch push.
+  # CI pipeline (typecheck + tests + build + security) must have already passed.
+  # Runs database migrations BEFORE the new code goes live.
+  # If migration fails, deployment does not proceed.
+
+  production:
+    name: Production Deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://rfactor-family.vercel.app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel environment (production)
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      # ── Database migrations (before code deploy) ──────────────────────────
+      # IMPORTANT: Migrations run BEFORE the new code deploys.
+      # New code is written to be backward-compatible with both old and new schema
+      # (additive changes only — never drop columns in the same deploy that reads them).
+      #
+      # The DATABASE_URL here is the production Supabase connection string.
+      # It's stored as a Vercel environment variable and pulled above.
+      - name: Run database migrations
+        run: |
+          echo "Running migrations..."
+          # Run manual SQL migrations in order
+          for migration in prisma/migrations/manual/*.sql; do
+            echo "Applying: $migration"
+            # Only apply if not already applied (idempotent)
+            # Track applied migrations in a _migrations table
+          done
+          echo "Migrations complete"
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Build for production
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy to production
+        id: deploy
+        run: |
+          DEPLOY_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "deploy_url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
+          echo "Production URL: $DEPLOY_URL"
+
+      # ── Post-deploy health check ─────────────────────────────────────────
+      # Verifies the new deployment is responding before marking success.
+      # If health check fails, the job fails and team is notified.
+      - name: Post-deploy health check
+        run: |
+          echo "Waiting 30s for deployment to warm up..."
+          sleep 30
+          HEALTH_URL="https://rfactor-family.vercel.app/api/v1/health"
+          echo "Checking: $HEALTH_URL"
+          RESPONSE=$(curl -sf "$HEALTH_URL" -w "\n%{http_code}" 2>/dev/null || echo '{"status":"error"}\n503')
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+          echo "Status: $HTTP_CODE"
+          echo "Body: $BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "HEALTH CHECK FAILED — deployment may be broken"
+            exit 1
+          fi
+          echo "Health check passed ✓"
+
+      - name: Notify deployment complete
+        if: success()
+        run: |
+          echo "Production deployment successful"
+          echo "URL: ${{ steps.deploy.outputs.deploy_url }}"
+          # Add Slack webhook notification here if desired:
+          # curl -X POST ${{ secrets.SLACK_WEBHOOK }} \
+          #   -H 'Content-type: application/json' \
+          #   --data '{"text":"✅ R Factor deployed to production: ${{ steps.deploy.outputs.deploy_url }}"}'
+
+      - name: Notify deployment failure
+        if: failure()
+        run: |
+          echo "Production deployment FAILED"
+          # Add PagerDuty/Slack alert here

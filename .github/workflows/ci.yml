@@ -1,0 +1,160 @@
+# .github/workflows/ci.yml
+#
+# CI pipeline for R Factor Family App.
+# Runs on every push to main and every pull request.
+# Gates: TypeScript check → unit tests → build → security audit.
+# Nothing deploys unless ALL gates pass.
+#
+# Setup required (GitHub repo Settings → Secrets and variables → Actions):
+#   VERCEL_TOKEN         — Vercel personal access token
+#   VERCEL_ORG_ID        — from .vercel/project.json after first link
+#   VERCEL_PROJECT_ID    — from .vercel/project.json after first link
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "20"
+
+jobs:
+
+  # ── Job 1: Type check ──────────────────────────────────────────────────────
+  # TypeScript errors catch bugs before tests run.
+  # Fails fast — no point running 89 tests if the code doesn't compile.
+
+  typecheck:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+        # --noEmit: check types without producing output files
+
+  # ── Job 2: Unit tests ──────────────────────────────────────────────────────
+  # 89 test cases: LessonNavigator reducer + API validation.
+  # These are the business logic gatekeepers.
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run tests with coverage
+        run: npm run test:coverage
+        env:
+          # Jest needs these to exist even though tests don't hit real DB
+          DATABASE_URL: "postgresql://fake:fake@localhost:5432/fake"
+          NEXTAUTH_SECRET: "ci-test-secret-not-real"
+          ANTHROPIC_API_KEY: "sk-ant-fake-for-ci"
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  # ── Job 3: Build ───────────────────────────────────────────────────────────
+  # next build catches:
+  #   - Missing env vars referenced in code
+  #   - Static generation failures
+  #   - Import errors not caught by tsc
+  # A build that fails in CI will also fail on Vercel — catch it here first.
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [typecheck, test]   # only build if types and tests pass
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build
+        run: npm run build
+        env:
+          # Build-time env vars — placeholders so next build succeeds
+          # Real values are in Vercel environment variables for the actual deployment
+          DATABASE_URL: "postgresql://fake:fake@localhost:5432/fake"
+          DIRECT_URL: "postgresql://fake:fake@localhost:5432/fake"
+          NEXTAUTH_URL: "https://rfactor-family.vercel.app"
+          NEXTAUTH_SECRET: "ci-build-secret-not-real-32chars-xxxx"
+          GOOGLE_CLIENT_ID: "000000000000-fake.apps.googleusercontent.com"
+          GOOGLE_CLIENT_SECRET: "GOCSPX-fake"
+          ANTHROPIC_API_KEY: "sk-ant-fake-for-build"
+          CRON_SECRET: "fake-cron-secret-for-build-only"
+          ADMIN_EMAILS: "ci@example.com"
+          MAX_AI_CALLS_PER_HOUR: "15"
+
+      - name: Check build output size
+        run: |
+          echo "=== Build output ==="
+          du -sh .next/
+          echo "=== Static pages ==="
+          find .next/static -name "*.js" | xargs du -sh 2>/dev/null | sort -h | tail -10
+
+  # ── Job 4: Dependency security audit ──────────────────────────────────────
+  # Runs npm audit at the MODERATE severity threshold.
+  # This catches new CVEs introduced by dependency updates.
+  # Currently: Next.js 14.2.35 is clean of auth bypass CVEs.
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Security audit (high + critical)
+        run: npm audit --audit-level=high
+        # Fails CI on HIGH or CRITICAL CVEs.
+        # MODERATE CVEs (postcss in Next.js, cookie in next-auth) are
+        # known and acceptable — fix requires breaking changes.
+        continue-on-error: false

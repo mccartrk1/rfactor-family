@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+
+# Build artifacts
+dist/
+
+# Environment files — NEVER commit these
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# Vercel
+.vercel
+
+# Testing
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal

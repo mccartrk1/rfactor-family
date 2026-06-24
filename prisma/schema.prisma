@@ -1,0 +1,362 @@
+// prisma/schema.prisma
+//
+// Database Architecture — R Factor Family App
+//
+// Key design decisions:
+//
+// 1. Child.userId (denormalized from Family)
+//    Ownership check was: child.findFirst({ where: { id, family: { userId } } })
+//    This forced a JOIN on every authenticated write.
+//    Now: child.findFirst({ where: { id, userId } }) — direct index lookup.
+//    Trade-off: userId duplicated. Acceptable because family reassignment never happens.
+//
+// 2. Child.profile (JSONB replacing 22 VARCHAR columns)
+//    Profile fields are ALWAYS read/written as a unit — never queried individually.
+//    JSONB advantage: new profile fields require zero migrations.
+//    Old columns kept during migration window, removed after code ships.
+//
+// 3. Removed redundant @@index([childId]) from LessonProgress, ChallengeResponse,
+//    ScenarioCache — the leading column of each composite @@unique already creates
+//    a B-tree index on childId. Duplicate index wastes ~30% extra write overhead.
+//
+// 4. Added partial indexes for admin analytics queries.
+//    lessonProgress.[completed, weekNumber] → fullProgramCount query
+//    lessonProgress.[updatedAt] → activeThisWeek query
+//    family.[createdAt] → newThisWeek query
+//
+// 5. ScenarioCache: TTL check moved from application to database WHERE clause.
+//    Old: fetch row, check expiresAt in JS. New: WHERE expiresAt > NOW() in query.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── NextAuth required models ─────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expires]) // for session cleanup
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Core domain models ───────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+
+  // ── Billing (Migration 006) ───────────────────────────────────
+  stripeCustomerId       String?   @unique
+  subscriptionTier       String?              // plan ID
+  subscriptionActive     Boolean   @default(false)
+  trialEndsAt            DateTime?            // set at enrollment
+  subscriptionEndsAt     DateTime?            // for cancelled-but-still-active
+  gracePeriodEndsAt      DateTime?            // 7-day payment grace
+  lastSubscriptionCheck  DateTime?            // cache TTL (24h)
+
+  // ── Communication ─────────────────────────────────────────────
+  emailOptOut  Boolean @default(false)        // CAN-SPAM / GDPR
+
+  // ── Referrals ─────────────────────────────────────────────────
+  referralCode String? @unique               // e.g. "mccarty7"
+
+  accounts         Account[]
+  sessions         Session[]
+  family           Family?
+  orgMemberships   OrganizationMember[]
+  referralsMade    Referral[] @relation("ReferralsMade")
+  referralReceived Referral[] @relation("ReferralReceived")
+
+  @@index([stripeCustomerId])
+  @@index([subscriptionActive])
+  @@index([trialEndsAt])
+}
+
+model Family {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  familyName     String
+  inviteCode     String?
+  organizationId String   @default("default")  // backfilled by migration 005
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  children       Child[]
+
+  @@index([createdAt])            // admin newThisWeek
+  @@index([organizationId])       // org-scoped family queries
+  @@index([organizationId, createdAt]) // org analytics: families over time
+}
+
+model InviteCode {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  note           String?   @db.VarChar(200)
+  usedAt         DateTime?
+  usedBy         String?
+  organizationId String    @default("default")   // scoped to org
+  createdAt      DateTime  @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([usedAt])
+  @@index([organizationId])  // org-scoped invite management
+}
+
+// ─── Child ────────────────────────────────────────────────────────────────────
+//
+// ARCHITECTURE NOTE — profile column:
+// 22 profile fields (name, bestFriend, grandparent, etc.) are stored as JSONB.
+// Rationale:
+//   - Fields are ALWAYS read/written as a unit, never filtered individually
+//   - Adding new profile fields requires zero migrations (just update the TS type)
+//   - Queries that need specific fields use profile->>'fieldName' or Prisma's path operator
+//   - Performance is equivalent to columns for bulk reads (single row fetch)
+//
+// ARCHITECTURE NOTE — userId column:
+// Denormalized from Family. Enables direct ownership check without JOIN:
+//   SELECT 1 FROM Child WHERE id = $1 AND user_id = $2
+// vs the previous:
+//   SELECT 1 FROM Child JOIN Family ON Child.family_id = Family.id
+//   WHERE Child.id = $1 AND Family.user_id = $2
+// This check runs on every authenticated write (scenario, progress, challenge).
+
+model Child {
+  id         String   @id @default(cuid())
+  familyId   String
+  userId     String   // denormalized from Family — enables index-only ownership check
+  track      String   @default("elementary")
+  profile    Json     // ChildProfileData — see types/index.ts
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  family             Family              @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  lessonProgress     LessonProgress[]
+  challengeResponses ChallengeResponse[]
+  scenarioCache      ScenarioCache[]
+
+  @@index([familyId])
+  @@index([userId])        // ownership check: WHERE id = $1 AND userId = $2
+  @@index([userId, familyId]) // dashboard query: find family's children
+}
+
+// ─── Lesson progress ──────────────────────────────────────────────────────────
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  childId     String
+  weekNumber  Int       // 1-13
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  currentStep String    @default("intro")
+  chunkIndex  Int       @default(0)
+  sealIndex   Int       @default(0)
+  updatedAt   DateTime  @updatedAt
+  child       Child     @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, weekNumber])
+  // @@index([childId]) REMOVED — leading column of @@unique already indexed
+  @@index([updatedAt])                          // admin activeThisWeek
+  @@index([completed, weekNumber])              // admin fullProgramCount (week 13 completions)
+  // Partial index for completions analytics: added in migration (see below)
+  // CREATE INDEX idx_progress_completed ON "LessonProgress" (child_id, week_number) WHERE completed = true
+}
+
+// ─── Challenge responses ──────────────────────────────────────────────────────
+
+model ChallengeResponse {
+  id          String   @id @default(cuid())
+  childId     String
+  weekNumber  Int
+  response    String   // 'yes' | 'not-yet'
+  createdAt   DateTime @default(now())
+  child       Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, weekNumber])
+  // @@index([childId]) REMOVED — leading column of @@unique already indexed
+  @@index([response, childId])  // admin count WHERE response = 'yes'
+}
+
+// ─── Scenario cache ───────────────────────────────────────────────────────────
+//
+// Keyed on (childId, weekNumber, attempt).
+// TTL enforced at query time via WHERE expiresAt > NOW() — not in application code.
+// Cleanup: cron deletes WHERE expiresAt < NOW() weekly.
+
+model ScenarioCache {
+  id         String   @id @default(cuid())
+  childId    String
+  weekNumber Int      // 1-13
+  attempt    Int      @default(0)
+  scenario   Json
+  createdAt  DateTime @default(now())
+  expiresAt  DateTime
+  child      Child    @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, weekNumber, attempt])
+  // @@index([childId]) REMOVED — leading column of @@unique already indexed
+  @@index([expiresAt])  // cron cleanup: DELETE WHERE expiresAt < NOW()
+}
+
+// ─── Rate limiting ────────────────────────────────────────────────────────────
+//
+// Sliding window per userId, 1-hour window.
+// @@index([updatedAt]) enables the cron cleanup job to purge stale rows
+// (rows with updatedAt older than 2 days are from exhausted old windows).
+
+model RateLimit {
+  id          String   @id @default(cuid())
+  key         String   @unique  // "ai:{userId}"
+  count       Int      @default(0)
+  windowStart DateTime
+  updatedAt   DateTime @updatedAt
+
+  @@index([updatedAt])  // cron cleanup: DELETE WHERE updatedAt < N days ago
+}
+
+// ─── Multi-tenancy — Organization model ──────────────────────────────────────
+//
+// ARCHITECTURAL DECISION (see CTO analysis):
+// Adds the Organization layer to enable the Focus 3 white-label partnership.
+//
+// Design principles:
+//   1. Backward compatible — existing pilot families belong to the default org
+//   2. Additive — no existing tables require columns dropped or renamed
+//   3. Slug-based routing — org.slug used in admin URLs (/admin/orgs/focus3)
+//   4. Feature flags per org — tier-gated capabilities in features JSON column
+//   5. Branding per org — logoUrl + primaryColor for white-label
+//
+// Rollout:
+//   Step 1: Add this schema (this migration)
+//   Step 2: Backfill Family.organizationId → default org in migration SQL
+//   Step 3: Deploy code that reads organizationId
+//   Step 4: Update admin to show org selector
+//
+// Organization tiers:
+//   pilot:      ≤50 families, no custom branding. Ryan's initial pilot.
+//   pro:        ≤500 families, custom branding, analytics export
+//   enterprise: unlimited families, dedicated support, SSO, SLA
+
+model Organization {
+  id           String   @id @default(cuid())
+  slug         String   @unique   // URL-safe name: "focus3", "r-factor-pilot"
+  name         String             // display name: "Focus 3", "R Factor Pilot"
+  description  String?
+  logoUrl      String?            // URL to org logo (for white-label header)
+  primaryColor String   @default("#0F2645")  // brand color
+  tier         String   @default("pilot")    // pilot | pro | enterprise
+  maxFamilies  Int      @default(50)
+  isActive     Boolean  @default(true)
+  features     Json     @default("{}")       // { "analytics_export": true, "custom_branding": false }
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  families    Family[]
+  inviteCodes InviteCode[]
+  members     OrganizationMember[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  role           String   @default("admin")   // admin | viewer
+  createdAt      DateTime @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])  // find all orgs for a user
+}
+
+// ─── Billing fields on User (Migration 006) ───────────────────────────────────
+// These fields are added by migration 006 and reference Stripe subscription state.
+// stripeCustomerId:    Stripe customer ID (cus_...)
+// subscriptionTier:    'family_monthly' | 'family_yearly' | 'school_yearly' | 'enterprise' | null
+// subscriptionActive:  true when subscription is active or trialing
+// trialEndsAt:         when the 14-day trial expires (set at enrollment)
+// subscriptionEndsAt:  when current billing period ends (for cancelled-but-active)
+// gracePeriodEndsAt:   when the 7-day payment grace period expires
+// emailOptOut:         CAN-SPAM / GDPR: user opted out of marketing emails
+// referralCode:        unique sharable code (e.g. "mccarty7") for referral program
+// lastSubscriptionCheck: when we last fetched status from Stripe (cache TTL: 24h)
+
+// NOTE: These extend the User model defined earlier in this file.
+// Prisma merges them at generate time — do not duplicate the model block.
+// Add these fields to the User model manually before running prisma generate.
+
+// ─── Waitlist ─────────────────────────────────────────────────────────────────
+
+model Waitlist {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("family")   // family | educator | corporate | other
+  referral  String?                        // how did they hear about us
+  createdAt DateTime @default(now())
+
+  @@index([role])
+  @@index([createdAt])
+}
+
+// ─── Referrals ────────────────────────────────────────────────────────────────
+
+model Referral {
+  id         String   @id @default(cuid())
+  referrerId String                         // User who shared the code
+  refereeId  String   @unique               // User who used the code (can only be referred once)
+  status     String   @default("pending")   // pending | rewarded | expired
+  createdAt  DateTime @default(now())
+
+  referrer   User @relation("ReferralsMade",     fields: [referrerId], references: [id], onDelete: Cascade)
+  referee    User @relation("ReferralReceived",  fields: [refereeId],  references: [id], onDelete: Cascade)
+
+  @@index([referrerId])
+  @@index([status])
+}

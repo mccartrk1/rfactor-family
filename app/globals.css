@@ -1,0 +1,42 @@
+/* app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy: #0F2645;
+  --orange: #FF5C35;
+  --bg: #F4F6FA;
+  --text: #111827;
+  --muted: #6B7280;
+  --border: #E2E8F0;
+  --green: #00875A;
+  --red: #C81E4A;
+  --light: #EAF0FB;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  max-width: 500px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+@keyframes rfpulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.rf-pulse {
+  animation: rfpulse 1.4s ease-in-out infinite;
+}
+
+.rf-dot {
+  animation: rfpulse 1.4s ease-in-out infinite;
+}

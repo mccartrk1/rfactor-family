@@ -1,0 +1,41 @@
+{
+  "name": "R Factor Family",
+  "short_name": "R Factor",
+  "description": "The family behavioral coaching program based on E+R=O",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0F2645",
+  "theme_color": "#0F2645",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "R Factor Dashboard"
+    }
+  ],
+  "categories": ["education", "family"],
+  "lang": "en-US"
+}
