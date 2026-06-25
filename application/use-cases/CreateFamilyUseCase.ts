@@ -48,9 +48,10 @@ export class CreateFamilyUseCase {
       if (!input.isNewFamily && input.existingFamilyId) {
         // Adding a second child — no invite needed
         const { childId } = await this.families.addChild(
-          input.existingFamilyId,
-          profile.toCreateInput() as Record<string, string>
-        )
+  input.existingFamilyId,
+  profile.toCreateInput() as Record<string, string>,
+  input.userId
+)
         return { success: true, childId }
       }
 
