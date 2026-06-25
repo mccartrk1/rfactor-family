@@ -62,6 +62,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
 
+  // Upsert user record — JWT mode has no database adapter so NextAuth
+  // never writes a User row. Create it here so the Family foreign key works.
+  await db.user.upsert({
+    where: { id: session.user.id },
+    update: { name: session.user.name ?? null, email: session.user.email ?? null },
+    create: {
+      id: session.user.id,
+      name: session.user.name ?? null,
+      email: session.user.email ?? null,
+    },
+  })
+
   // Find out whether this user already has a family (determines invite code requirement)
   const existingFamily = await familyRepository.findByUserId(session.user.id)
 
