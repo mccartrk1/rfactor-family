@@ -82,7 +82,7 @@ export function DashboardShell({ children, familyName }: Props) {
             <a href="/settings" style={{ position: 'absolute', top: 14, right: 20, fontSize: 12, color: 'rgba(255,255,255,0.45)', textDecoration: 'none', fontWeight: 600 }}>⚙ Settings</a>
             <a href={`/journey/${activeChild.id}`} style={{ position: 'absolute', bottom: 14, right: 20, fontSize: 12, color: 'rgba(255,255,255,0.45)', textDecoration: 'none', fontWeight: 600 }}>📈 Journey</a>
             <h1 style={{ fontSize: 24, fontWeight: 900, color: '#fff', margin: '0 0 4px', letterSpacing: -0.5 }}>
-              {activeChild.name}&apos;s Program
+              {(activeChild.profile as any)?.name || 'Child'}&apos;s Program
             </h1>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.32)', margin: '0 0 14px' }}>
               {completedCount} of 13 weeks complete
@@ -108,7 +108,7 @@ export function DashboardShell({ children, familyName }: Props) {
                   color: c.id === activeChildId ? '#fff' : 'rgba(255,255,255,0.6)',
                 }}
               >
-                {c.name}
+                {(c.profile as any)?.name || 'Child'}
               </button>
             ))}
           </div>
