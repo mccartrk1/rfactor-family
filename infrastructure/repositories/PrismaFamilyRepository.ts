@@ -22,7 +22,6 @@ export class PrismaFamilyRepository implements IFamilyRepository {
     childData: Record<string, string>
   ): Promise<{ familyId: string; childId: string }> {
     const { family, child } = await db.$transaction(async tx => {
-      // Atomic conditional claim: mark invite used only if it's still available
       const claimed = await tx.$executeRaw`
         UPDATE "InviteCode"
         SET "usedAt" = NOW(), "usedBy" = ${userId}
@@ -43,11 +42,15 @@ export class PrismaFamilyRepository implements IFamilyRepository {
         data: { userId, familyName, inviteCode },
       })
 
-      // Spread childData first, then override familyId and userId so placeholders
-      // from ChildProfile never reach the database. profile defaults to {} if
-      // not supplied — it is a required JSON column in the schema.
+      // Child table only has relational fields + a profile JSON column.
+      // All profile data (name, age, grade, etc.) lives inside profile.
+      const { id: _id, familyId: _familyId, ...profileData } = childData
       const child = await tx.child.create({
-        data: { ...childData, familyId: family.id, userId, profile: {} },
+        data: {
+          familyId: family.id,
+          userId,
+          profile: profileData,
+        },
       })
 
       return { family, child }
@@ -63,12 +66,12 @@ export class PrismaFamilyRepository implements IFamilyRepository {
     childData: Record<string, string>,
     userId?: string
   ): Promise<{ childId: string }> {
+    const { id: _id, familyId: _familyId, ...profileData } = childData
     const child = await db.child.create({
       data: {
-        ...childData,
         familyId,
-        profile: {},
         ...(userId ? { userId } : {}),
+        profile: profileData,
       },
     })
     return { childId: child.id }
