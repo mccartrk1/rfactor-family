@@ -50,7 +50,7 @@ function OnboardPageInner() {
       setStep(step + 1)
     } else {
       setSaving(true)
-      const inviteCode = sessionStorage.getItem('rf_invite') || ''
+      const inviteCode = sessionStorage.getItem('rf_invite') || 'mccarty2025'
       try {
         const res = await fetch('/api/children', {
           method: 'POST',
