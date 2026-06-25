@@ -21,20 +21,6 @@ export class PrismaFamilyRepository implements IFamilyRepository {
     inviteCode: string,
     childData: Record<string, string>
   ): Promise<{ familyId: string; childId: string }> {
-    // RACE CONDITION FIX: Move invite validation INSIDE the transaction.
-    //
-    // Previous flow had a TOCTOU gap:
-    //   1. findUnique check (outside tx) — both concurrent requests pass
-    //   2. $transaction — both enter, both mark the invite used
-    //   Result: one invite code creates two families
-    //
-    // Fix: Use a conditional UPDATE that only succeeds when usedAt IS NULL.
-    // If two requests race, only one UPDATE will match the WHERE clause.
-    // The other gets rowsAffected=0 and throws INVITE_USED.
-    // No explicit SELECT needed — the UPDATE return value is the source of truth.
-    //
-    // Using serializable isolation to prevent phantom reads in the transaction.
-
     const { family, child } = await db.$transaction(async tx => {
       // Atomic conditional claim: mark invite used only if it's still available
       const claimed = await tx.$executeRaw`
@@ -44,8 +30,6 @@ export class PrismaFamilyRepository implements IFamilyRepository {
           AND "usedAt" IS NULL
       `
 
-      // claimed = 0 means either code doesn't exist OR is already used
-      // Distinguish the two for better error messages
       if (claimed === 0) {
         const exists = await tx.inviteCode.findUnique({
           where: { code: inviteCode },
@@ -58,9 +42,13 @@ export class PrismaFamilyRepository implements IFamilyRepository {
       const family = await tx.family.create({
         data: { userId, familyName, inviteCode },
       })
+
+      // FIX: spread childData first, then set familyId and userId explicitly
+      // so the real values always win over any placeholders from ChildProfile
       const child = await tx.child.create({
-        data: { familyId: family.id, ...childData },
+        data: { ...childData, familyId: family.id, userId },
       })
+
       return { family, child }
     }, {
       isolationLevel: 'Serializable',
@@ -71,10 +59,12 @@ export class PrismaFamilyRepository implements IFamilyRepository {
 
   async addChild(
     familyId: string,
-    childData: Record<string, string>
+    childData: Record<string, string>,
+    userId?: string
   ): Promise<{ childId: string }> {
+    // FIX: spread childData first, then override familyId and userId explicitly
     const child = await db.child.create({
-      data: { familyId, ...childData },
+      data: { ...childData, familyId, ...(userId ? { userId } : {}) },
     })
     return { childId: child.id }
   }
