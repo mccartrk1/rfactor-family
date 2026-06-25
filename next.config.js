@@ -9,7 +9,7 @@ const isDev = process.env.NODE_ENV !== 'production'
 // if an attacker injects any HTML, they can escalate via eval() immediately.
 const scriptSrc = isDev
   ? "'self' 'unsafe-eval' 'unsafe-inline'"  // dev: permissive for DX
-  : "'self'"                                  // prod: strict — no eval, no inline scripts
+: "'self' 'unsafe-inline'"               // NextAuth requires inline scripts
 
 const securityHeaders = [
   // Prevent clickjacking — this app must never be framed
