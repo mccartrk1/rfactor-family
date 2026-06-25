@@ -1,2 +1,5 @@
-// Temporarily disabled for OAuth debugging
-export const config = { matcher: [] }
+export { default } from 'next-auth/middleware'
+
+export const config = {
+  matcher: ['/dashboard/:path*', '/onboard/:path*', '/lesson/:path*', '/journey/:path*'],
+}
