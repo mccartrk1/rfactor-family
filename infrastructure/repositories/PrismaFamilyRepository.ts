@@ -43,10 +43,11 @@ export class PrismaFamilyRepository implements IFamilyRepository {
         data: { userId, familyName, inviteCode },
       })
 
-      // FIX: spread childData first, then set familyId and userId explicitly
-      // so the real values always win over any placeholders from ChildProfile
+      // Spread childData first, then override familyId and userId so placeholders
+      // from ChildProfile never reach the database. profile defaults to {} if
+      // not supplied — it is a required JSON column in the schema.
       const child = await tx.child.create({
-        data: { ...childData, familyId: family.id, userId },
+        data: { ...childData, familyId: family.id, userId, profile: {} },
       })
 
       return { family, child }
@@ -62,9 +63,13 @@ export class PrismaFamilyRepository implements IFamilyRepository {
     childData: Record<string, string>,
     userId?: string
   ): Promise<{ childId: string }> {
-    // FIX: spread childData first, then override familyId and userId explicitly
     const child = await db.child.create({
-      data: { ...childData, familyId, ...(userId ? { userId } : {}) },
+      data: {
+        ...childData,
+        familyId,
+        profile: {},
+        ...(userId ? { userId } : {}),
+      },
     })
     return { childId: child.id }
   }
