@@ -8,11 +8,11 @@
 //
 // Zero business logic. Zero Prisma. Zero Claude. All of that lives in the
 // application and infrastructure layers, wired up in lib/container.ts.
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { childRepository, getScenarioUseCase } from '@/lib/container'
+import type { ChildProfileData } from '@/domain/entities/ChildProfile'
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -24,23 +24,23 @@ export async function POST(req: NextRequest) {
   try { body = await req.json() } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
   }
-  const { childId, weekNumber, attempt = 0 } = body
 
+  const { childId, weekNumber, attempt = 0 } = body
   if (!childId || typeof weekNumber !== 'number' || weekNumber < 1 || weekNumber > 13) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
   }
 
   // Ownership check — verifies child belongs to this user
-  const child = await childRepository.findByIdForUser(childId, session.user.id as string)
+  const child = await childRepository.findByIdForUser(childId as string, session.user.id as string)
   if (!child) {
     return NextResponse.json({ error: 'Child not found' }, { status: 404 })
   }
 
   const result = await getScenarioUseCase.execute({
-    profile: child,
-    childId,
+    profile: child.profile as ChildProfileData,
+    childId: childId as string,
     weekNumber,
-    attempt,
+    attempt: attempt as number,
     userId: session.user.id,
   })
 
