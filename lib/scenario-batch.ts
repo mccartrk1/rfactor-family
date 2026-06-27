@@ -29,6 +29,7 @@
 //   Entirely offset by eliminating per-request rate limiting concerns
 
 import { db } from '@/lib/db'
+import type { Prisma } from '@prisma/client'
 import { logger, LogEvents } from '@/lib/logger'
 import { ClaudeScenarioGenerator } from '@/infrastructure/generators/ClaudeScenarioGenerator'
 
@@ -111,8 +112,8 @@ export async function batchPregenerate(childId: string): Promise<{
         // Write to cache
         await db.scenarioCache.upsert({
           where: { childId_weekNumber_attempt: { childId, weekNumber: week, attempt } },
-          create: { childId, weekNumber: week, attempt, scenario: scenario as object, expiresAt },
-          update: { scenario: scenario as object, expiresAt },
+          create: { childId, weekNumber: week, attempt, scenario: scenario as unknown as Prisma.InputJsonValue, expiresAt },
+          update: { scenario: scenario as unknown as Prisma.InputJsonValue, expiresAt },
         })
 
         generated++

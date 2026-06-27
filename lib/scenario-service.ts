@@ -19,7 +19,7 @@ import { buildPrompt } from './prompt'
 import { repairJSON } from './json'
 import { DatabaseRateLimiter } from '@/infrastructure/limiters/DatabaseRateLimiter'
 import { toChildProfile } from './child'
-import type { Child } from '@prisma/client'
+import type { Child, Prisma } from '@prisma/client'
 import type { ScenarioPayload } from '@/types'
 
 const CACHE_TTL_DAYS = parseInt(process.env.SCENARIO_CACHE_TTL_DAYS ?? '30', 10)
@@ -71,8 +71,8 @@ export async function pregenerateNext(
 
       await db.scenarioCache.upsert({
         where: { childId_weekNumber_attempt: { childId: child.id, weekNumber: nextWeek, attempt: 0 } },
-        create: { childId: child.id, weekNumber: nextWeek, attempt: 0, scenario: scenario as object, expiresAt },
-        update: { scenario: scenario as object, expiresAt },
+        create: { childId: child.id, weekNumber: nextWeek, attempt: 0, scenario: scenario as unknown as Prisma.InputJsonValue, expiresAt },
+        update: { scenario: scenario as unknown as Prisma.InputJsonValue, expiresAt },
       })
     } finally {
       clearTimeout(timeoutId)

@@ -2,6 +2,7 @@
 
 import type { IFamilyRepository, FamilyData } from '@/domain/repositories/IFamilyRepository'
 import { db } from '@/lib/db'
+import type { Prisma } from '@prisma/client'
 
 export class PrismaFamilyRepository implements IFamilyRepository {
   async findByUserId(userId: string): Promise<FamilyData | null> {
@@ -51,7 +52,7 @@ export class PrismaFamilyRepository implements IFamilyRepository {
           familyId: family.id,
           userId,
           track: track || 'elementary',
-          profile: profileData,
+          profile: profileData as Prisma.InputJsonObject,
         },
       })
 
@@ -74,7 +75,7 @@ export class PrismaFamilyRepository implements IFamilyRepository {
         familyId,
         ...(userId ? { userId } : {}),
         track: track || 'elementary',
-        profile: profileData,
+        profile: profileData as Prisma.InputJsonObject,
       },
     })
     return { childId: child.id }

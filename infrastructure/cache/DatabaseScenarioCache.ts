@@ -7,6 +7,7 @@
 import type { IScenarioCache } from '@/application/ports/IScenarioCache'
 import type { ScenarioPayload } from '@/application/ports/IScenarioGenerator'
 import { db } from '@/lib/db'
+import type { Prisma } from '@prisma/client'
 
 const TTL_DAYS = parseInt(process.env.SCENARIO_CACHE_TTL_DAYS ?? '30')
 
@@ -44,8 +45,8 @@ export class DatabaseScenarioCache implements IScenarioCache {
 
     await db.scenarioCache.upsert({
       where: { childId_weekNumber_attempt: { childId, weekNumber, attempt } },
-      create: { childId, weekNumber, attempt, scenario: scenario as object, expiresAt },
-      update: { scenario: scenario as object, expiresAt },
+      create: { childId, weekNumber, attempt, scenario: scenario as unknown as Prisma.InputJsonValue, expiresAt },
+      update: { scenario: scenario as unknown as Prisma.InputJsonValue, expiresAt },
     })
   }
 

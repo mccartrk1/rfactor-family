@@ -5,6 +5,7 @@
 
 import { NextRequest } from 'next/server'
 import { db } from '@/lib/db'
+import type { Prisma } from '@prisma/client'
 import { ok, err } from '@/lib/api'
 import { withOwnership } from '@/lib/api/middleware'
 import { validateChildProfileUpdate } from '@/lib/api/validation'
@@ -87,7 +88,7 @@ export async function PUT(req: NextRequest, ctx: Params) {
     const updated = await db.child.update({
       where: { id: childId },
       data: {
-        profile: mergedProfile,
+        profile: mergedProfile as Prisma.InputJsonValue,
         ...(track !== undefined ? { track: track as string } : {}),
       },
       select: { id: true, track: true, profile: true, updatedAt: true },
