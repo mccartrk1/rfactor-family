@@ -8,12 +8,9 @@
 import type { Week, Lesson } from '@/types'
 import { WEEKS } from '@/content/weeks'
 import { WEEKS_ADULT } from '@/content/weeks-adult'
+import { isAdultTrack } from '@/lib/tracks'
 
-export const ADULT_TRACK = 'adult'
-
-export function isAdultTrack(track: string | null | undefined): boolean {
-  return track === ADULT_TRACK
-}
+export { isAdultTrack } from '@/lib/tracks'
 
 // Client-safe: week metadata only.
 export function getProgramWeeks(track: string | null | undefined): Week[] {

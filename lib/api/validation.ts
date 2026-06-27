@@ -11,6 +11,7 @@
 // self-documenting. Add Zod if the validation surface grows significantly.
 
 import type { BodyValidator } from './middleware'
+import { VALID_TRACKS, DEFAULT_TRACK, isValidTrack } from '@/lib/tracks'
 
 // ─── Primitive helpers ────────────────────────────────────────────────────────
 
@@ -84,9 +85,8 @@ export const validateChildProfile: BodyValidator<ChildProfileInput> = (raw) => {
   if (!name) errors.name = 'Child name is required'
   if (name.length > 50) errors.name = 'Name must be 50 characters or fewer'
 
-  const track = String(b.track ?? 'elementary').trim()
-  const VALID_TRACKS = ['elementary', 'middle', 'high', 'pre-k', 'adult']
-  if (!VALID_TRACKS.includes(track)) errors.track = `Track must be one of: ${VALID_TRACKS.join(', ')}`
+  const track = String(b.track ?? DEFAULT_TRACK).trim()
+  if (!isValidTrack(track)) errors.track = `Track must be one of: ${VALID_TRACKS.join(', ')}`
 
   // Optional string fields — cap length, coerce to string
   const optionalFields: Array<[string, number]> = [
@@ -151,8 +151,7 @@ export const validateChildProfileUpdate: BodyValidator<ChildProfileUpdateInput> 
 
   if (b.track !== undefined) {
     const track = String(b.track).trim()
-    const VALID_TRACKS = ['elementary', 'middle', 'high', 'pre-k', 'adult']
-    if (!VALID_TRACKS.includes(track)) errors.track = `Track must be one of: ${VALID_TRACKS.join(', ')}`
+    if (!isValidTrack(track)) errors.track = `Track must be one of: ${VALID_TRACKS.join(', ')}`
     else result.track = track
   }
 

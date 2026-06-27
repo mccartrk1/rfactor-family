@@ -1,5 +1,6 @@
 // lib/prompt.ts
 import { ChildProfile } from '@/types'
+import { isAdultTrack } from '@/lib/tracks'
 
 const SCENARIO_CONTEXTS = [
   'Morning routine — getting dressed, rushing, or something going wrong before school',
@@ -110,7 +111,7 @@ Return ONLY this JSON with no extra text:
 }
 
 export function buildPrompt(child: ChildProfile, weekNumber: number, attempt: number): string {
-  if (child.track === 'adult') {
+  if (isAdultTrack(child.track)) {
     return buildAdultPrompt(child, weekNumber, attempt)
   }
   const contextIndex = ((weekNumber - 1) + attempt * 3) % SCENARIO_CONTEXTS.length
