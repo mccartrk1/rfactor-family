@@ -50,14 +50,14 @@ export default function LessonClient({ weekNumber, childId, lesson, week, prevCh
     <div style={{ minHeight: '100vh', background: '#F4F6FA', display: 'flex', flexDirection: 'column' }}>
 
       {/* Week header — static, never changes during lesson */}
-      <div style={{ background: wc, padding: '48px 22px 24px' }}>
-        <button onClick={m.goBack} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 14, cursor: 'pointer', padding: 0, marginBottom: 20, display: 'block', fontFamily: 'inherit' }}>← Back</button>
+      <div style={{ background: wc, padding: '30px 22px 18px' }}>
+        <button onClick={m.goBack} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 14, cursor: 'pointer', padding: 0, marginBottom: 12, display: 'block', fontFamily: 'inherit' }}>← Back</button>
         <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', margin: '0 0 3px' }}>Week {week.w}</p>
         <h1 style={{ fontSize: 26, fontWeight: 900, color: '#fff', margin: '0 0 3px', letterSpacing: -0.5 }}>{week.title}</h1>
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', margin: 0 }}>{week.emoji} {week.sub}</p>
       </div>
 
-      <div style={{ flex: 1, padding: '22px 18px 48px', maxWidth: 500, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+      <div style={{ flex: 1, padding: '16px 18px 28px', maxWidth: 500, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
 
         {/* ── INTRO ── */}
         {state.step === 'intro' && (
@@ -124,10 +124,10 @@ export default function LessonClient({ weekNumber, childId, lesson, week, prevCh
               current={state.chunkIndex}
               color={wc}
               label="Teaching chunk"
-              style={{ marginBottom: 20 }}
+              style={{ marginBottom: 14 }}
             />
             <VisualCard vtype={m.vtype} chunk={m.chunk} weekColor={wc} />
-            <p style={{ fontSize: 16, color: '#111827', lineHeight: 1.85, margin: '0 0 22px' }}>{m.chunk.teach}</p>
+            <p style={{ fontSize: 16, color: '#111827', lineHeight: 1.65, margin: '14px 0 18px' }}>{m.chunk.teach}</p>
 
             {checkQ ? (
               <>

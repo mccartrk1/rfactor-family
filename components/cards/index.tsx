@@ -19,7 +19,25 @@ interface Props {
 function LessonImage(props: React.ComponentProps<typeof Image>) {
   const [failed, setFailed] = useState(false)
   if (failed) return null
-  return <Image {...props} onError={() => setFailed(true)} />
+  // Cap height so a hero image never dominates the card / forces scrolling.
+  // Scale by height with auto width so images stay sharp and centered, no gaps.
+  // Border radius and other per-image styling is preserved.
+  return (
+    <Image
+      {...props}
+      onError={() => setFailed(true)}
+      style={{
+        ...props.style,
+        width: 'auto',
+        height: 'auto',
+        maxHeight: 188,
+        maxWidth: '100%',
+        objectFit: 'contain',
+        display: 'block',
+        margin: '0 auto',
+      }}
+    />
+  )
 }
 
 // Scenario header icon. Uses the illustration when present and loadable,
