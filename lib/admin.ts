@@ -322,23 +322,27 @@ export async function getFamilyDetail(familyId: string): Promise<FamilyDetail | 
     familyName: family.familyName,
     email: family.user.email ?? '—',
     createdAt: family.createdAt,
-    children: family.children.map(c => ({
-      id: c.id,
-      name: c.name,
-      age: c.age,
-      grade: c.grade,
-      school: c.school,
-      track: c.track,
-      weekProgress: c.lessonProgress.map(p => ({
-        weekNumber: p.weekNumber,
-        completed: p.completed,
-        completedAt: p.completedAt,
-        currentStep: p.currentStep,
-        updatedAt: p.updatedAt,
-      })),
-      challengeYesWeeks: c.challengeResponses.map(r => r.weekNumber),
-      aiCallCount: c.scenarioCache.length,
-    })),
+    children: family.children.map(c => {
+      // name/age/grade/school live in the JSONB profile column, not as columns.
+      const cp = (c.profile as unknown as Record<string, unknown> | null) ?? {}
+      return {
+        id: c.id,
+        name: (cp.name as string) ?? '',
+        age: (cp.age as string) ?? '',
+        grade: (cp.grade as string) ?? '',
+        school: (cp.school as string) ?? '',
+        track: c.track,
+        weekProgress: c.lessonProgress.map(p => ({
+          weekNumber: p.weekNumber,
+          completed: p.completed,
+          completedAt: p.completedAt,
+          currentStep: p.currentStep,
+          updatedAt: p.updatedAt,
+        })),
+        challengeYesWeeks: c.challengeResponses.map(r => r.weekNumber),
+        aiCallCount: c.scenarioCache.length,
+      }
+    }),
   }
 }
 
