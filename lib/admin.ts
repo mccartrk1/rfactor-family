@@ -373,7 +373,6 @@ export async function getOrgList(): Promise<OrgSummary[]> {
         include: {
           children: {
             include: {
-              _count: { select: { id: true } },
               lessonProgress: {
                 where: { completed: true },
                 select: { id: true },
