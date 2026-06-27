@@ -2,12 +2,15 @@
 //
 // PERF FIX 1: curriculum.ts removed from client bundle.
 // Server resolves lesson data and passes only what's needed as props.
-// Client never downloads the full 29KB curriculum module.
+// Client never downloads the full curriculum module.
+//
+// Track-aware: the learner's `track` selects which program (kid vs adult) the
+// lesson content comes from. Defaults to the kid program when no child is found.
 
 import { Suspense } from 'react'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { LESSONS } from '@/content/curriculum'
-import { WEEKS } from '@/content/weeks'
+import { db } from '@/lib/db'
+import { getLessonsForTrack, getProgramWeeks } from '@/content/programs'
 import LessonClient from './client'
 
 interface Props {
@@ -15,11 +18,21 @@ interface Props {
   searchParams: { childId?: string }
 }
 
-export default function LessonPage({ params, searchParams }: Props) {
+export default async function LessonPage({ params, searchParams }: Props) {
   const weekNumber = parseInt(params.week)
   const childId = searchParams.childId || ''
 
-  if (isNaN(weekNumber) || weekNumber < 1 || weekNumber > 13) {
+  // Resolve the learner's track so we serve the right program's content.
+  const child = childId
+    ? await db.child.findUnique({ where: { id: childId }, select: { track: true } })
+    : null
+  const track = child?.track ?? 'elementary'
+
+  const weeks = getProgramWeeks(track)
+  const lessons = await getLessonsForTrack(track)
+  const totalWeeks = weeks.length
+
+  if (isNaN(weekNumber) || weekNumber < 1 || weekNumber > totalWeeks) {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
         <p style={{ fontSize: 16, color: '#6B7280' }}>Invalid week.</p>
@@ -27,11 +40,11 @@ export default function LessonPage({ params, searchParams }: Props) {
     )
   }
 
-  const lesson = LESSONS[weekNumber]
-  const week = WEEKS.find(w => w.w === weekNumber)!
+  const lesson = lessons[weekNumber]
+  const week = weeks.find(w => w.w === weekNumber)!
 
-  // Pass prev week's challenge so the client doesn't need to import curriculum.ts
-  const prevChallenge = weekNumber > 1 ? LESSONS[weekNumber - 1]?.challenge ?? null : null
+  // Pass prev week's challenge so the client doesn't need the curriculum module.
+  const prevChallenge = weekNumber > 1 ? lessons[weekNumber - 1]?.challenge ?? null : null
 
   if (!lesson || !week) {
     return (

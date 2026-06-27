@@ -42,13 +42,15 @@ export class PrismaFamilyRepository implements IFamilyRepository {
         data: { userId, familyName, inviteCode },
       })
 
-      // Child table only has relational fields + a profile JSON column.
-      // All profile data (name, age, grade, etc.) lives inside profile.
-      const { id: _id, familyId: _familyId, ...profileData } = childData
+      // Child table holds relational fields + `track` column + a profile JSON.
+      // `track` selects the program (kid vs adult), so it must live on the
+      // column the app reads — not buried in the profile JSON.
+      const { id: _id, familyId: _familyId, track, ...profileData } = childData
       const child = await tx.child.create({
         data: {
           familyId: family.id,
           userId,
+          track: track || 'elementary',
           profile: profileData,
         },
       })
@@ -66,11 +68,12 @@ export class PrismaFamilyRepository implements IFamilyRepository {
     childData: Record<string, string>,
     userId?: string
   ): Promise<{ childId: string }> {
-    const { id: _id, familyId: _familyId, ...profileData } = childData
+    const { id: _id, familyId: _familyId, track, ...profileData } = childData
     const child = await db.child.create({
       data: {
         familyId,
         ...(userId ? { userId } : {}),
+        track: track || 'elementary',
         profile: profileData,
       },
     })

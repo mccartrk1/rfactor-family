@@ -8,7 +8,7 @@ import { authOptions } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { redirect, notFound } from 'next/navigation'
 import { JourneyClient } from './client'
-import { WEEKS } from '@/content/weeks'
+import { getProgramWeeks } from '@/content/programs'
 
 interface Props { params: { childId: string }; searchParams: { print?: string } }
 
@@ -48,11 +48,14 @@ export default async function JourneyPage({ params, searchParams }: Props) {
   const childName = profile.name ?? 'Your child'
   const isPrint  = searchParams.print === '1'
 
-  // Build week data: each of the 13 weeks with status
+  // Build week data for the learner's program (kid vs adult), each with status.
+  const programWeeks = getProgramWeeks(child.track)
+  const totalWeeks = programWeeks.length
+  const halfwayNumber = Math.ceil(totalWeeks / 2)
   const progressMap = new Map(child.lessonProgress.map(p => [p.weekNumber, p]))
   const challengeMap = new Map(child.challengeResponses.map(c => [c.weekNumber, c]))
 
-  const weeks = WEEKS.map(week => {
+  const weeks = programWeeks.map(week => {
     const progress = progressMap.get(week.w)
     const challenge = challengeMap.get(week.w)
     return {
@@ -77,8 +80,8 @@ export default async function JourneyPage({ params, searchParams }: Props) {
 
   // Milestones
   const firstWeek   = child.lessonProgress.find(p => p.weekNumber === 1)
-  const halfwayWeek = child.lessonProgress.find(p => p.weekNumber === 7 && p.completed)
-  const finalWeek   = child.lessonProgress.find(p => p.weekNumber === 13 && p.completed)
+  const halfwayWeek = child.lessonProgress.find(p => p.weekNumber === halfwayNumber && p.completed)
+  const finalWeek   = child.lessonProgress.find(p => p.weekNumber === totalWeeks && p.completed)
 
   const milestones = [
     firstWeek ? { label: 'First lesson', date: firstWeek.updatedAt.toISOString(), emoji: '🚀' } : null,
@@ -98,7 +101,8 @@ export default async function JourneyPage({ params, searchParams }: Props) {
       totalChallenges={totalChallenges}
       milestones={milestones}
       isPrint={isPrint}
-      isComplete={completedCount === 13}
+      totalWeeks={totalWeeks}
+      isComplete={completedCount === totalWeeks}
       certificateUrl={`/certificate/${child.id}`}
     />
   )

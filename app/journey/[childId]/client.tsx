@@ -35,6 +35,7 @@ interface Props {
   totalChallenges: number
   milestones: Milestone[]
   isPrint: boolean
+  totalWeeks: number
   isComplete: boolean
   certificateUrl: string
 }
@@ -105,12 +106,12 @@ function WeekCard({ week, onClick, isSelected }: { week: WeekData; onClick: () =
 export function JourneyClient({
   childId, childName, familyName, enrolledAt,
   weeks, completedCount, yesCount, totalChallenges,
-  milestones, isPrint, isComplete, certificateUrl,
+  milestones, isPrint, totalWeeks, isComplete, certificateUrl,
 }: Props) {
   const router = useRouter()
   const [selectedWeek, setSelectedWeek] = useState<WeekData | null>(null)
 
-  const completionPct = Math.round((completedCount / 13) * 100)
+  const completionPct = Math.round((completedCount / totalWeeks) * 100)
   const challengePct  = totalChallenges > 0 ? Math.round((yesCount / totalChallenges) * 100) : 0
 
   function formatDate(iso: string): string {
@@ -178,7 +179,7 @@ export function JourneyClient({
         {/* Stat pills */}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {[
-            { label: 'Weeks done', value: `${completedCount}/13`, color: C.orange },
+            { label: 'Weeks done', value: `${completedCount}/${totalWeeks}`, color: C.orange },
             { label: 'Completion', value: `${completionPct}%`, color: '#00875A' },
             { label: 'Challenges tried', value: totalChallenges > 0 ? `${yesCount}/${totalChallenges}` : '—', color: '#6C3FC5' },
           ].map(stat => (
@@ -199,7 +200,7 @@ export function JourneyClient({
 
         {/* ── Week Timeline ────────────────────────────────────────── */}
         <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: C.muted, margin: '0 0 12px' }}>
-          13-Week Program
+          {totalWeeks}-Week Program
         </p>
 
         {/* Horizontal scrollable row */}
@@ -300,7 +301,7 @@ export function JourneyClient({
           </div>
           {!isComplete && nextWeekNum && (
             <p style={{ fontSize: 12, color: C.muted, margin: '8px 0 0' }}>
-              {13 - completedCount} {13 - completedCount === 1 ? 'week' : 'weeks'} to go · Next: Week {nextWeekNum}
+              {totalWeeks - completedCount} {totalWeeks - completedCount === 1 ? 'week' : 'weeks'} to go · Next: Week {nextWeekNum}
             </p>
           )}
         </div>

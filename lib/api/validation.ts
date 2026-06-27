@@ -85,7 +85,7 @@ export const validateChildProfile: BodyValidator<ChildProfileInput> = (raw) => {
   if (name.length > 50) errors.name = 'Name must be 50 characters or fewer'
 
   const track = String(b.track ?? 'elementary').trim()
-  const VALID_TRACKS = ['elementary', 'middle', 'high', 'pre-k']
+  const VALID_TRACKS = ['elementary', 'middle', 'high', 'pre-k', 'adult']
   if (!VALID_TRACKS.includes(track)) errors.track = `Track must be one of: ${VALID_TRACKS.join(', ')}`
 
   // Optional string fields — cap length, coerce to string
@@ -151,7 +151,7 @@ export const validateChildProfileUpdate: BodyValidator<ChildProfileUpdateInput> 
 
   if (b.track !== undefined) {
     const track = String(b.track).trim()
-    const VALID_TRACKS = ['elementary', 'middle', 'high', 'pre-k']
+    const VALID_TRACKS = ['elementary', 'middle', 'high', 'pre-k', 'adult']
     if (!VALID_TRACKS.includes(track)) errors.track = `Track must be one of: ${VALID_TRACKS.join(', ')}`
     else result.track = track
   }

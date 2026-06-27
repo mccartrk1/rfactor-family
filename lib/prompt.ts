@@ -54,7 +54,65 @@ function sanitizeForPrompt(text: string | null | undefined): string {
     .slice(0, 100)                                // hard cap per field
 }
 
+// ─── Adult (parent) program ───────────────────────────────────────────────────
+// Parenting flashpoints. The Event is the child's behavior; the Response the
+// scenario trains is the PARENT's.
+const ADULT_CONTEXTS = [
+  'Your child melts down in a store or public place over something small',
+  'Your kids are fighting and both are yelling for you to take a side',
+  'Morning chaos — nobody is dressed, you are running late, a kid refuses to move',
+  'A screen-time battle — you say time is up and your child argues or ignores you',
+  'Bedtime resistance — stalling, getting out of bed, big feelings when overtired',
+  'Your child talks back or says something disrespectful',
+  'A spill, a broken thing, or a mess right after you just cleaned up',
+  'A homework or chores standoff — flat refusal or melting down over it',
+  'Your child denies something you clearly saw them do',
+  'You are exhausted and your kid pushes the exact button that sets you off',
+  'A tantrum over a "no" — candy, a toy, or staying somewhere longer',
+  'Tattling and blame — "he started it," "she always gets away with it"',
+  'Getting everyone out the door while one kid stalls',
+  'Your child ignores you after you have asked three times',
+]
+
+const ADULT_WEEK_TOPICS: Record<number, string> = {
+  1: "E+R=O for the parent. The Event is the child's behavior. The Response is the parent's. The parent always controls the R.",
+  2: 'Owning your 20 square feet as a parent. Inside: your tone, your words, your next move. Outside: your child, the mess, the timing.',
+  3: 'Recognizing your OWN BCD — Blaming, Complaining, Defending — when your kid pushes back.',
+  4: 'No BCD in action: catching your own reactive habit mid-moment and choosing resolution instead.',
+}
+
+function buildAdultPrompt(child: ChildProfile, weekNumber: number, attempt: number): string {
+  const contextIndex = ((weekNumber - 1) + attempt * 3) % ADULT_CONTEXTS.length
+  const context = ADULT_CONTEXTS[contextIndex]
+  const topic = ADULT_WEEK_TOPICS[weekNumber] ?? ADULT_WEEK_TOPICS[1]
+  const kids = sanitizeForPrompt(child.siblings) || 'not listed'
+  const trigger = sanitizeForPrompt(child.flashPoint)
+
+  const profileLines = [
+    `Parent name: ${sanitizeForPrompt(child.name)}`,
+    `Their kids: ${kids}`,
+    trigger ? `Parent's biggest trigger: ${trigger}` : null,
+  ].filter(Boolean).join('\n- ')
+
+  return `You are an R Factor coach for a PARENT practicing E+R=O on their own response.
+
+Parent profile:
+- ${profileLines}
+
+This week's R Factor concept: ${topic}
+
+Specific situation to write about: ${context}
+
+Write ONE realistic at-home parenting moment in SECOND PERSON throughout — "you" is the PARENT, never the child. The child's behavior is the Event. The disciplinePath and defaultPath are the PARENT'S two possible Responses, and the results are what happens with the child and the household next. If the kids' names are known (${kids}), use them naturally; otherwise write "your child" or "your kids." Keep it warm, real, and free of shame.
+
+Return ONLY this JSON with no extra text:
+{"setup":"2-3 sentences in second person setting the scene as the parent.","event":"What your child does — the hard moment. One sentence.","disciplinePath":{"choice":"The disciplined parent response. 1-2 sentences.","result":"What happens with your child next. One sentence."},"defaultPath":{"choice":"The automatic, reactive parent response. 1-2 sentences.","result":"What happens with your child next. One sentence."},"question":"One reflection question for the parent after reading this."}`
+}
+
 export function buildPrompt(child: ChildProfile, weekNumber: number, attempt: number): string {
+  if (child.track === 'adult') {
+    return buildAdultPrompt(child, weekNumber, attempt)
+  }
   const contextIndex = ((weekNumber - 1) + attempt * 3) % SCENARIO_CONTEXTS.length
   const context = SCENARIO_CONTEXTS[contextIndex]
   const topic = WEEK_TOPICS[weekNumber]

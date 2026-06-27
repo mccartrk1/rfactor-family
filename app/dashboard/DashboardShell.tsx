@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { WEEKS } from '@/content/weeks'
+import { getProgramWeeks } from '@/content/programs'
 import { WeekCard, Button } from '@/components'
 import type { ChildWithProgress } from './page'
 import type { LessonProgress } from '@prisma/client'
@@ -54,6 +54,10 @@ export function DashboardShell({ children, familyName }: Props) {
     return map
   }, [activeChild])
 
+  // Weeks for the active learner's program (kid vs adult). Drives the grid,
+  // the "X of N" count, and the completion banner so each program is self-sizing.
+  const weeks = useMemo(() => getProgramWeeks(activeChild.track), [activeChild])
+
   const completedCount = useMemo(
     () => activeChild.lessonProgress.filter(p => p.completed).length,
     [activeChild]
@@ -85,7 +89,7 @@ export function DashboardShell({ children, familyName }: Props) {
               {(activeChild.profile as any)?.name || 'Child'}&apos;s Program
             </h1>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.32)', margin: '0 0 14px' }}>
-              {completedCount} of 13 weeks complete
+              {completedCount} of {weeks.length} weeks complete
             </p>
           </div>
           <button
@@ -116,17 +120,17 @@ export function DashboardShell({ children, familyName }: Props) {
       </div>
 
       {/* Completion banner */}
-      {completedCount === 13 && (
+      {completedCount === weeks.length && (
         <div style={{ margin: '14px 14px 0', background: '#0F2645', borderRadius: 16, padding: '16px 18px', border: '2px solid #FF5C35', textAlign: 'center' }}>
           <p style={{ fontSize: 28, margin: '0 0 6px' }}>🏆</p>
           <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#FF5C35', margin: '0 0 4px' }}>Program complete</p>
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0 }}>{activeChild.name} finished all 13 weeks.</p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0 }}>{(activeChild.profile as any)?.name || 'This learner'} finished all {weeks.length} weeks.</p>
         </div>
       )}
 
       {/* Week grid */}
       <div style={{ padding: '18px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        {WEEKS.map(w => {
+        {weeks.map(w => {
           const p = progressMap[w.w]
           const status = !p ? 'not-started'
             : p.completed ? 'complete'
@@ -159,6 +163,20 @@ export function DashboardShell({ children, familyName }: Props) {
           + Add another child
         </Button>
       </div>
+
+      {/* Start the parent program — only offered if there isn't one yet */}
+      {!children.some(c => c.track === 'adult') && (
+        <div style={{ padding: '10px 14px 0' }}>
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={() => router.push('/onboard?add=true&track=adult')}
+            style={{ border: '1.5px dashed #FFC9B8', color: '#C2410C' }}
+          >
+            + Start the parent program
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

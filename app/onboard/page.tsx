@@ -21,10 +21,21 @@ const QUESTIONS = [
   { id: 'flashPoint',    label: (a: any) => `What is ${a.name || "their"}'s biggest trigger at home?`, placeholder: 'e.g. screen time, bedtime', optional: true },
 ]
 
+// Adult (parent) program — a short, grown-up question set. Field ids are reused
+// so the AI scenario prompt picks them up (siblings = your kids, flashPoint = trigger).
+const ADULT_QUESTIONS = [
+  { id: 'name',       label: "What's your first name?",                       placeholder: 'Your first name',                 optional: false },
+  { id: 'familyName', label: "What's your last name?",                        placeholder: 'e.g. McCarty',                    optional: false },
+  { id: 'siblings',   label: "What are your kids' names?",                    placeholder: 'e.g. John, Nick, Michael',        optional: true  },
+  { id: 'flashPoint', label: 'What sets you off most when your kids act up?', placeholder: 'e.g. backtalk, the morning rush', optional: true  },
+]
+
 function OnboardPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   // isAdding removed — add-child vs first-child behavior is handled server-side
+  const isAdult = searchParams.get('track') === 'adult'
+  const questions = isAdult ? ADULT_QUESTIONS : QUESTIONS
 
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -32,9 +43,9 @@ function OnboardPageInner() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const q = QUESTIONS[step]
+  const q = questions[step]
   const label = typeof q.label === 'function' ? q.label(answers) : q.label
-  const progress = Math.round(((step) / QUESTIONS.length) * 100)
+  const progress = Math.round(((step) / questions.length) * 100)
   const canNext = inputVal.trim().length > 0 || q.optional
 
   // BUG 3 FIX: Accept the value to save explicitly instead of reading inputVal
@@ -45,8 +56,8 @@ function OnboardPageInner() {
     const newAnswers = { ...answers, [q.id]: valueToSave }
     setAnswers(newAnswers)
 
-    if (step < QUESTIONS.length - 1) {
-      setInputVal(newAnswers[QUESTIONS[step + 1].id] || '')
+    if (step < questions.length - 1) {
+      setInputVal(newAnswers[questions[step + 1].id] || '')
       setStep(step + 1)
     } else {
       setSaving(true)
@@ -55,7 +66,7 @@ function OnboardPageInner() {
         const res = await fetch('/api/children', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...newAnswers, inviteCode }),
+          body: JSON.stringify({ ...newAnswers, inviteCode, track: isAdult ? 'adult' : undefined }),
         })
         const data = await res.json()
         // BUG 4 FIX: Surface API errors instead of silently doing nothing.
@@ -84,7 +95,7 @@ function OnboardPageInner() {
 
       <div style={{ flex: 1, padding: '36px 24px 32px', maxWidth: 460, margin: '0 auto', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
         <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#FF5C35', margin: '0 0 28px' }}>
-          {step + 1} / {QUESTIONS.length}
+          {step + 1} / {questions.length}
         </p>
         {error && (
           <div style={{ background: '#FEF2F2', borderRadius: 10, padding: '10px 14px', marginBottom: 16, border: '1.5px solid #FECACA' }}>
@@ -110,7 +121,7 @@ function OnboardPageInner() {
             disabled={!canNext || saving}
             style={{ flex: 1, padding: '16px 22px', background: canNext ? '#0F2645' : '#E2E8F0', color: canNext ? '#fff' : '#6B7280', border: 'none', borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: canNext ? 'pointer' : 'not-allowed', fontFamily: 'inherit', marginBottom: 0 }}
           >
-            {saving ? 'Saving...' : step === QUESTIONS.length - 1 ? 'Build my program →' : 'Next →'}
+            {saving ? 'Saving...' : step === questions.length - 1 ? 'Build my program →' : 'Next →'}
           </button>
           {q.optional && (
             <button
@@ -124,7 +135,7 @@ function OnboardPageInner() {
 
         {step > 0 && (
           <button
-            onClick={() => { setStep(step - 1); setInputVal(answers[QUESTIONS[step - 1].id] || '') }}
+            onClick={() => { setStep(step - 1); setInputVal(answers[questions[step - 1].id] || '') }}
             style={{ marginTop: 14, background: 'none', border: 'none', color: '#6B7280', fontSize: 14, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}
           >
             ← Back
