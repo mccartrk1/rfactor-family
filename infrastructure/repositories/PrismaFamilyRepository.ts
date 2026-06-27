@@ -69,11 +69,17 @@ export class PrismaFamilyRepository implements IFamilyRepository {
     childData: Record<string, string>,
     userId?: string
   ): Promise<{ childId: string }> {
+    // userId is a required, denormalized column used for ownership checks.
+    // Fall back to the family's owner if the caller did not pass it.
+    const ownerId = userId ?? (await db.family.findUniqueOrThrow({
+      where: { id: familyId },
+      select: { userId: true },
+    })).userId
     const { id: _id, familyId: _familyId, track, ...profileData } = childData
     const child = await db.child.create({
       data: {
         familyId,
-        ...(userId ? { userId } : {}),
+        userId: ownerId,
         track: track || 'elementary',
         profile: profileData as Prisma.InputJsonObject,
       },
