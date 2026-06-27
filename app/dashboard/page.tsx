@@ -57,7 +57,6 @@ export default async function DashboardPage() {
         <DashboardShell
           children={family.children as ChildWithProgress[]}
           familyName={family.familyName}
-          orgBranding={orgBranding}
         />
       </SubscriptionGate>
     </OrgBrandingProvider>
