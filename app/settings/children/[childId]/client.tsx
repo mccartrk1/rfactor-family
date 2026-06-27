@@ -139,7 +139,7 @@ export function ChildProfileEditClient({ child }: Props) {
     const v: Record<string, string> = {}
     for (const section of sections) {
       for (const field of section.fields) {
-        v[field.id] = (child as Record<string, string>)[field.id] ?? ''
+        v[field.id] = (child as unknown as Record<string, string>)[field.id] ?? ''
       }
     }
     return v

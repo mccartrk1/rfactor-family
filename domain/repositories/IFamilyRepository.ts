@@ -23,5 +23,5 @@ export interface IFamilyRepository {
   ): Promise<{ familyId: string; childId: string }>
 
   /** Add a child to an existing family. */
-  addChild(familyId: string, childData: Record<string, string>): Promise<{ childId: string }>
+  addChild(familyId: string, childData: Record<string, string>, userId?: string): Promise<{ childId: string }>
 }

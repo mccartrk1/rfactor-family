@@ -1,6 +1,6 @@
 'use client'
 import { signIn } from 'next-auth/react'
-import { useEffect, useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 export default function LoginPage() {

@@ -121,7 +121,7 @@ function PlanCard({ plan, onSelect, loading, isCurrentPlan }: {
       <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:20 }}>
         {plan.features.slice(0, 4).map((f, i) => (
           <div key={i} style={{ display:'flex', gap:8, alignItems:'flex-start' }}>
-            <span style={{ color:plan.highlighted ? C.orange : C.green, fontWeight:900, flexShrink:0 }}>✓</span>
+            <span style={{ color:plan.highlighted ? C.orange : C.success, fontWeight:900, flexShrink:0 }}>✓</span>
             <span style={{ fontSize:13, color:plan.highlighted ? 'rgba(255,255,255,0.8)' : C.text, lineHeight:1.4 }}>{f}</span>
           </div>
         ))}

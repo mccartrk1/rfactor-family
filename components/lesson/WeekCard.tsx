@@ -79,7 +79,7 @@ export function WeekCard({
         textAlign:     'left',
         position:      'relative',
         opacity:       isLocked ? 0.45 : 1,
-        transition:    A.transition,
+        transition:    A.base,
         WebkitTapHighlightColor: 'transparent',
         minHeight:     88,
         ...overrideStyle,

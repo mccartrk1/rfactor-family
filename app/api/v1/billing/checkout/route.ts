@@ -30,7 +30,7 @@ export const POST = withAuth(async (req, session) => {
     const url = await createCheckoutSession({
       userId: session.user.id,
       userEmail: session.user.email,
-      planId: planId as PlanId,
+      planId: planId as 'family_monthly' | 'family_yearly' | 'school_yearly',
       successUrl: `${baseUrl}/billing?success=1`,
       cancelUrl: `${baseUrl}/pricing`,
     })

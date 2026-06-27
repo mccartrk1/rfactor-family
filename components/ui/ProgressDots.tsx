@@ -81,7 +81,7 @@ export function ProgressDots({
               height: h,
               borderRadius: 999,
               background: isPast || isActive ? color : '#E2E8F0',
-              transition: A.transitionSlow,
+              transition: A.slow,
               flexShrink: 0,
             }}
           />

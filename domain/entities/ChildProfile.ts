@@ -41,30 +41,30 @@ export interface ChildProfileData {
 }
 
 export class ChildProfile {
-  readonly id: string
-  readonly familyId: string
-  readonly name: string
-  readonly familyName: string
-  readonly age: string
-  readonly grade: string
-  readonly school: string
-  readonly mascot: string
-  readonly teacher: string
-  readonly bestFriend: string
-  readonly friends: string
-  readonly activity: string
-  readonly game: string
-  readonly loveFood: string
-  readonly hateFood: string
-  readonly athlete: string
-  readonly team: string
-  readonly grandparent: string
-  readonly trustedAdults: string
-  readonly babysitter: string
-  readonly hardThing: string
-  readonly flashPoint: string
-  readonly siblings: string
-  readonly track: string
+  readonly id!: string
+  readonly familyId!: string
+  readonly name!: string
+  readonly familyName!: string
+  readonly age!: string
+  readonly grade!: string
+  readonly school!: string
+  readonly mascot!: string
+  readonly teacher!: string
+  readonly bestFriend!: string
+  readonly friends!: string
+  readonly activity!: string
+  readonly game!: string
+  readonly loveFood!: string
+  readonly hateFood!: string
+  readonly athlete!: string
+  readonly team!: string
+  readonly grandparent!: string
+  readonly trustedAdults!: string
+  readonly babysitter!: string
+  readonly hardThing!: string
+  readonly flashPoint!: string
+  readonly siblings!: string
+  readonly track!: string
 
   private constructor(data: ChildProfileData) {
     Object.assign(this, data)
@@ -124,7 +124,7 @@ export class ChildProfile {
 
   // Returns only the fields the DB schema accepts for create/update
   toCreateInput(): Omit<ChildProfileData, 'id'> {
-    const { id, ...rest } = { id: this.id, ...this }
+    const { id: _id, ...rest } = this as unknown as ChildProfileData
     return rest
   }
 }

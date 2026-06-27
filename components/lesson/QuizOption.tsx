@@ -80,7 +80,7 @@ export function QuizOption({
           border: `${state === 'correct' || state === 'incorrect' ? 2 : 1.5}px solid ${border}`,
           cursor: isSelectable ? 'pointer' : 'default',
           marginBottom: 10,
-          transition: A.transition,
+          transition: A.base,
           WebkitTapHighlightColor: 'transparent',
           ...overrideStyle,
         }}

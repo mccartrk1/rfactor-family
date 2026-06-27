@@ -27,7 +27,7 @@ interface CreateOrgBody {
   adminEmail?: string
 }
 
-const validateCreateOrg: BodyValidator<CreateOrgBody> = (raw) => {
+export const validateCreateOrg: BodyValidator<CreateOrgBody> = (raw) => {
   const b = raw as Record<string, unknown>
   const errors: Record<string, string> = {}
 

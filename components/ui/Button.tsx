@@ -138,7 +138,7 @@ export function Button({
     cursor: isDisabled ? 'not-allowed' : 'pointer',
     userSelect: 'none',
     WebkitTapHighlightColor: 'transparent',
-    transition: A.transition,
+    transition: A.base,
 
     // Disabled state
     opacity: isDisabled ? 0.5 : 1,
