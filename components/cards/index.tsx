@@ -28,7 +28,6 @@ function LessonImage(props: React.ComponentProps<typeof Image>) {
       onError={() => setFailed(true)}
       style={{
         ...props.style,
-        width: 'auto',
         height: 'auto',
         maxHeight: 188,
         maxWidth: '100%',
