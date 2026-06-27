@@ -10,7 +10,7 @@
 // Changing navigation logic: edit the reducer only. This file never changes.
 
 import { useLessonMachine } from '@/hooks/useLessonMachine'
-import { VisualCard } from '@/components/cards'
+import { VisualCard, ScenarioIcon } from '@/components/cards'
 import { WEEKS } from '@/content/weeks'
 import { isCheckCorrect, isSealAnswered, isSealCorrect } from '@/domain/services/LessonNavigator'
 import {
@@ -22,7 +22,6 @@ import {
   QuizGroup,
   ChoiceGroup,
 } from '@/components'
-import Image from 'next/image'
 import type { Lesson, Week } from '@/types'
 
 interface Props {
@@ -213,11 +212,7 @@ export default function LessonClient({ weekNumber, childId, lesson, week, prevCh
           <>
             <div style={{ background: '#fff', borderRadius: 16, padding: 20, border: '1.5px solid #E2E8F0', marginBottom: 14 }}>
               <div style={{ textAlign: 'center', marginBottom: 12 }}>
-                {m.iconData.img ? (
-                  <Image src={m.iconData.img} alt="" width={80} height={80} style={{ objectFit: 'contain', margin: '0 auto 6px', display: 'block' }} />
-                ) : (
-                  <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 6 }}>{m.iconData.emoji}</div>
-                )}
+                <ScenarioIcon key={m.iconData.img ?? m.iconData.emoji} img={m.iconData.img} emoji={m.iconData.emoji} />
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 8, alignItems: 'center' }}>
                   <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#6B7280', margin: 0 }}>Your situation</p>
                   {!state.apiError && <Badge variant="personalized">personalized</Badge>}

@@ -10,12 +10,44 @@ interface Props {
   weekColor: string
 }
 
+// Lesson illustrations live in /public/images. When an image is missing (or
+// fails to load), next/image otherwise renders a broken-image box at full
+// reserved size — which both looks broken and pushes the lesson text and
+// buttons off-screen. LessonImage collapses to nothing on error so the card
+// stays clean and fits on one screen. Drop the real artwork into
+// /public/images and it appears automatically with no code change.
+function LessonImage(props: React.ComponentProps<typeof Image>) {
+  const [failed, setFailed] = useState(false)
+  if (failed) return null
+  return <Image {...props} onError={() => setFailed(true)} />
+}
+
+// Scenario header icon. Uses the illustration when present and loadable,
+// otherwise falls back to the context emoji. Keyed by src/emoji at the call
+// site so the failed state resets when the scenario changes.
+export function ScenarioIcon({ img, emoji }: { img: string | null; emoji: string }) {
+  const [failed, setFailed] = useState(false)
+  if (img && !failed) {
+    return (
+      <Image
+        src={img}
+        alt=""
+        width={80}
+        height={80}
+        onError={() => setFailed(true)}
+        style={{ objectFit: 'contain', margin: '0 auto 6px', display: 'block' }}
+      />
+    )
+  }
+  return <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 6 }}>{emoji}</div>
+}
+
 export function VisualCard({ vtype, chunk, weekColor }: Props) {
   switch (vtype) {
     case 'ero-hero':
       return (
         <div style={{ marginBottom: 18 }}>
-          <Image src="/images/ero-graphic.png" alt="E+R=O" width={500} height={280} style={{ width: '100%', borderRadius: 16 }} />
+          <LessonImage src="/images/ero-graphic.png" alt="E+R=O" width={500} height={280} style={{ width: '100%', borderRadius: 16 }} />
         </div>
       )
 
@@ -50,14 +82,14 @@ export function VisualCard({ vtype, chunk, weekColor }: Props) {
     case 'sqft-image':
       return (
         <div style={{ marginBottom: 18 }}>
-          <Image src="/images/20-square-feet.png" alt="Your 20 Square Feet" width={500} height={500} style={{ width: '100%', borderRadius: 16, display: 'block' }} />
+          <LessonImage src="/images/20-square-feet.png" alt="Your 20 Square Feet" width={500} height={500} style={{ width: '100%', borderRadius: 16, display: 'block' }} />
         </div>
       )
 
     case 'bcd-prohibition':
       return (
         <div style={{ marginBottom: 20, textAlign: 'center' }}>
-          <Image src="/images/no-bcd-sign.png" alt="No BCD" width={200} height={200} style={{ display: 'block', margin: '0 auto 10px', objectFit: 'contain' }} />
+          <LessonImage src="/images/no-bcd-sign.png" alt="No BCD" width={200} height={200} style={{ display: 'block', margin: '0 auto 10px', objectFit: 'contain' }} />
           <p style={{ fontSize: 13, fontWeight: 700, color: '#DC2626', margin: '0 0 4px' }}>Blaming. Complaining. Defending.</p>
           <p style={{ fontSize: 12, color: '#9CA3AF', margin: 0 }}>None of these ever fix anything.</p>
         </div>
@@ -95,7 +127,7 @@ export function VisualCard({ vtype, chunk, weekColor }: Props) {
       const isBot = vtype === 'character-bot'
       return (
         <div style={{ textAlign: 'center', background: isBot ? '#F3F4F6' : '#FFF3EE', borderRadius: 16, padding: '18px 16px', marginBottom: 18, border: `2px solid ${isBot ? '#E2E8F0' : '#FFDCC8'}` }}>
-          <Image src={isBot ? '/images/default-bot-full.png' : '/images/tiger-full.png'} alt={isBot ? 'Default' : 'Discipline'} width={160} height={160} style={{ objectFit: 'contain', marginBottom: 4 }} />
+          <LessonImage src={isBot ? '/images/default-bot-full.png' : '/images/tiger-full.png'} alt={isBot ? 'Default' : 'Discipline'} width={160} height={160} style={{ objectFit: 'contain', marginBottom: 4 }} />
           {chunk.title && <p style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 800, color: isBot ? '#6B7280' : '#FF5C35' }}>{chunk.title}</p>}
           {chunk.subtitle && <p style={{ margin: '0 0 10px', fontSize: 13, color: isBot ? '#4B5563' : '#C2410C', lineHeight: 1.5 }}>{chunk.subtitle}</p>}
           {chunk.traits && (
@@ -112,7 +144,7 @@ export function VisualCard({ vtype, chunk, weekColor }: Props) {
     case 'radio':
       return (
         <div style={{ marginBottom: 18, textAlign: 'center' }}>
-          <Image src="/images/radio.png" alt="Default and Discipline Stations" width={400} height={300} style={{ width: '100%', borderRadius: 16, display: 'block', margin: '0 auto' }} />
+          <LessonImage src="/images/radio.png" alt="Default and Discipline Stations" width={400} height={300} style={{ width: '100%', borderRadius: 16, display: 'block', margin: '0 auto' }} />
           <p style={{ margin: '10px 0 0', fontSize: 13, fontWeight: 700, color: '#0F2645', textAlign: 'center' }}>You always control the dial. 🎛️</p>
         </div>
       )
@@ -120,14 +152,14 @@ export function VisualCard({ vtype, chunk, weekColor }: Props) {
     case 'comparison':
       return (
         <div style={{ marginBottom: 18 }}>
-          <Image src="/images/tiger-vs-robot.png" alt="Discipline vs Default" width={500} height={350} style={{ width: '100%', borderRadius: 16, display: 'block' }} />
+          <LessonImage src="/images/tiger-vs-robot.png" alt="Discipline vs Default" width={500} height={350} style={{ width: '100%', borderRadius: 16, display: 'block' }} />
         </div>
       )
 
     case 'tiger-pause-img':
       return (
         <div style={{ marginBottom: 18, textAlign: 'center' }}>
-          <Image src="/images/tiger-pause.png" alt="Press Pause" width={220} height={220} style={{ objectFit: 'contain', display: 'block', margin: '0 auto' }} />
+          <LessonImage src="/images/tiger-pause.png" alt="Press Pause" width={220} height={220} style={{ objectFit: 'contain', display: 'block', margin: '0 auto' }} />
         </div>
       )
 
@@ -172,7 +204,7 @@ export function VisualCard({ vtype, chunk, weekColor }: Props) {
     case 'mindset-cycle':
       return (
         <div style={{ marginBottom: 18 }}>
-          <Image src="/images/mindset-cycle.png" alt="Mindset Cycle" width={400} height={400} style={{ width: '100%', maxWidth: 360, borderRadius: 16, display: 'block', margin: '0 auto' }} />
+          <LessonImage src="/images/mindset-cycle.png" alt="Mindset Cycle" width={400} height={400} style={{ width: '100%', maxWidth: 360, borderRadius: 16, display: 'block', margin: '0 auto' }} />
         </div>
       )
 
@@ -286,7 +318,7 @@ export function VisualCard({ vtype, chunk, weekColor }: Props) {
     case 'ripple-card':
       return (
         <div style={{ marginBottom: 18, textAlign: 'center' }}>
-          <Image src="/images/ripple.png" alt="Ripple Effect" width={400} height={400} style={{ width: '100%', borderRadius: 16, maxWidth: 400, display: 'block', margin: '0 auto 8px' }} />
+          <LessonImage src="/images/ripple.png" alt="Ripple Effect" width={400} height={400} style={{ width: '100%', borderRadius: 16, maxWidth: 400, display: 'block', margin: '0 auto 8px' }} />
           <p style={{ margin: 0, fontSize: 13, color: '#0F2645', fontWeight: 700 }}>Your R becomes an E for everyone around you.</p>
         </div>
       )
