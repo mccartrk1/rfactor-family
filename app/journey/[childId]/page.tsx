@@ -63,14 +63,14 @@ export default async function JourneyPage({ params, searchParams }: Props) {
       title: week.title,
       emoji: week.emoji,
       color: week.color,
-      status: progress?.completed
+      status: (progress?.completed
         ? 'completed'
         : progress
           ? 'in-progress'
-          : 'upcoming',
+          : 'upcoming') as 'completed' | 'in-progress' | 'upcoming',
       completedAt: progress?.completedAt?.toISOString() ?? null,
       currentStep: progress?.currentStep ?? null,
-      challengeResponse: challenge?.response ?? null,
+      challengeResponse: (challenge?.response ?? null) as 'yes' | 'not-yet' | null,
     }
   })
 
