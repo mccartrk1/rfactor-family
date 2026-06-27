@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
 import { Button, Input } from '@/components'
 import { C, R, SP } from '@/components/tokens'
+import { isAdultTrack } from '@/lib/tracks'
 
 // Profile shape (matches Prisma Child select)
 interface ChildProfile {
@@ -97,14 +98,46 @@ const SECTIONS: Array<{ title: string; emoji: string; fields: FieldDef[] }> = [
   },
 ]
 
+// Field definitions for the ADULT (parent) program. Grade, school, mascot,
+// favorites and the rest of the kid fields do not apply to a grown-up learner,
+// so the parent form asks about their kids and what sets them off instead.
+const ADULT_SECTIONS: Array<{ title: string; emoji: string; fields: FieldDef[] }> = [
+  {
+    title: 'About you',
+    emoji: '🧑',
+    fields: [
+      { id: 'name',       label: 'First name', placeholder: 'e.g. Kristen' },
+      { id: 'familyName', label: 'Last name',  placeholder: 'e.g. McCarty' },
+    ],
+  },
+  {
+    title: 'Your family',
+    emoji: '🏠',
+    fields: [
+      { id: 'siblings',   label: 'Your kids’ names and ages', placeholder: 'e.g. John (6), Nick (4), Michael (1)', hint: 'Your kids appear by name in your scenarios' },
+      { id: 'babysitter', label: 'Babysitter or other caregivers', placeholder: 'e.g. Miss Sarah, Grandma', hint: 'Optional — used when a scenario involves childcare' },
+    ],
+  },
+  {
+    title: 'What sets you off',
+    emoji: '⚡',
+    fields: [
+      { id: 'flashPoint', label: 'Your biggest trigger when they act up', placeholder: 'e.g. backtalk, bedtime stalling, whining', hint: 'Used to make scenarios feel real and specific to you' },
+    ],
+  },
+]
+
 export function ChildProfileEditClient({ child }: Props) {
   const router = useRouter()
   const toast = useToast()
 
+  // Parent learners see an adult-appropriate field set; kids see the full one.
+  const sections = isAdultTrack(child.track) ? ADULT_SECTIONS : SECTIONS
+
   // Form state — initialize from props
   const [values, setValues] = useState<Record<string, string>>(() => {
     const v: Record<string, string> = {}
-    for (const section of SECTIONS) {
+    for (const section of sections) {
       for (const field of section.fields) {
         v[field.id] = (child as Record<string, string>)[field.id] ?? ''
       }
@@ -208,7 +241,7 @@ export function ChildProfileEditClient({ child }: Props) {
       </div>
 
       {/* Field sections */}
-      {SECTIONS.map(section => (
+      {sections.map(section => (
         <div key={section.title} style={{ marginBottom: 28 }}>
           <p style={{
             fontSize: 10, fontWeight: 800, letterSpacing: '0.18em',

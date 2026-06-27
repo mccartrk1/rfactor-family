@@ -88,10 +88,12 @@ function buildAdultPrompt(child: ChildProfile, weekNumber: number, attempt: numb
   const topic = ADULT_WEEK_TOPICS[weekNumber] ?? ADULT_WEEK_TOPICS[1]
   const kids = sanitizeForPrompt(child.siblings) || 'not listed'
   const trigger = sanitizeForPrompt(child.flashPoint)
+  const sitter = sanitizeForPrompt(child.babysitter)
 
   const profileLines = [
     `Parent name: ${sanitizeForPrompt(child.name)}`,
     `Their kids: ${kids}`,
+    sitter ? `Babysitter or caregiver: ${sitter}` : null,
     trigger ? `Parent's biggest trigger: ${trigger}` : null,
   ].filter(Boolean).join('\n- ')
 
