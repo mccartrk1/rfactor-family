@@ -138,7 +138,12 @@ export function JourneyClient({
   }
 
   const currentWeek = weeks.find(w => w.status === 'in-progress')
-  const nextWeekNum = completedCount < 13 ? completedCount + 1 : null
+  // The next week is the lowest-numbered week that is not yet completed — not
+  // `completedCount + 1`. Counting up from the total breaks whenever weeks are
+  // completed out of order (e.g. a later week finished first), which made the
+  // journey skip earlier unfinished weeks and point "Continue" at the wrong one.
+  const firstIncomplete = weeks.find(w => w.status !== 'completed')
+  const nextWeekNum = firstIncomplete ? firstIncomplete.number : null
 
   return (
     <div style={{

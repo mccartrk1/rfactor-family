@@ -22,10 +22,10 @@ export default async function SettingsPage() {
         orderBy: { createdAt: 'asc' },
         select: {
           id: true,
-          name: true,
-          age: true,
-          grade: true,
-          school: true,
+          // name, age, grade, school live inside the JSONB `profile` column,
+          // not as top-level Child columns. Selecting them directly threw a
+          // Prisma error and crashed the Settings page. Read `profile` instead.
+          profile: true,
           track: true,
           createdAt: true,
           lessonProgress: {
@@ -49,16 +49,20 @@ export default async function SettingsPage() {
         createdAt: family.createdAt.toISOString(),
         userEmail,
       }}
-      children={family.children.map(c => ({
-        id: c.id,
-        name: c.name,
-        age: c.age,
-        grade: c.grade,
-        school: c.school,
-        track: c.track,
-        createdAt: c.createdAt.toISOString(),
-        weeksCompleted: c.lessonProgress.length,
-      }))}
+      children={family.children.map((c: { id: string; track: string; createdAt: Date; profile: unknown; lessonProgress: { weekNumber: number }[] }) => {
+        const profile = (c.profile as Record<string, unknown> | null) ?? {}
+        const str = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v))
+        return {
+          id: c.id,
+          name: str(profile.name),
+          age: str(profile.age),
+          grade: str(profile.grade),
+          school: str(profile.school),
+          track: c.track,
+          createdAt: c.createdAt.toISOString(),
+          weeksCompleted: c.lessonProgress.length,
+        }
+      })}
     />
   )
 }

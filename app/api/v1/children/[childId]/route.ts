@@ -14,32 +14,14 @@ type Params = { params: { childId: string } }
 // ─── GET ───────────────────────────────────────────────────────────────────────
 
 export const GET = withOwnership(async (_req, _session, { childId }) => {
+  // Profile fields live inside the JSONB `profile` column, not as top-level
+  // Child columns. Select `profile` and flatten it for the response.
   const child = await db.child.findUnique({
     where: { id: childId },
     select: {
       id: true,
-      name: true,
-      familyName: true,
-      age: true,
-      grade: true,
-      school: true,
-      mascot: true,
-      teacher: true,
-      bestFriend: true,
-      friends: true,
-      activity: true,
-      game: true,
-      loveFood: true,
-      hateFood: true,
-      athlete: true,
-      team: true,
-      grandparent: true,
-      trustedAdults: true,
-      babysitter: true,
-      hardThing: true,
-      flashPoint: true,
-      siblings: true,
       track: true,
+      profile: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -47,11 +29,25 @@ export const GET = withOwnership(async (_req, _session, { childId }) => {
 
   if (!child) return err('NOT_FOUND', 'Child not found')
 
-  // Separate stable display fields from sensitive profile fields
-  const { id, name, familyName, age, grade, school, track, createdAt, updatedAt, ...profile } = child
+  const p = (child.profile as Record<string, unknown> | null) ?? {}
+  const str = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v))
+
+  // Stable display fields vs. the remaining sensitive profile fields
+  const { name, familyName, age, grade, school, ...profile } = p as Record<string, unknown>
 
   return ok({
-    child: { id, name, familyName, age, grade, school, track, createdAt, updatedAt, profile },
+    child: {
+      id: child.id,
+      name: str(name),
+      familyName: str(familyName),
+      age: str(age),
+      grade: str(grade),
+      school: str(school),
+      track: child.track,
+      createdAt: child.createdAt,
+      updatedAt: child.updatedAt,
+      profile,
+    },
   })
 })
 
@@ -72,17 +68,40 @@ export async function PUT(req: NextRequest, ctx: Params) {
 
     const updates = validation.data
 
+    // `track` is a real Child column; every other field lives inside the JSONB
+    // `profile` column. Merge the profile updates into the existing profile so
+    // partial edits do not wipe untouched fields.
+    const { track, ...profileUpdates } = updates as Record<string, unknown>
+
+    const existing = await db.child.findUnique({
+      where: { id: childId },
+      select: { profile: true },
+    })
+    if (!existing) return err('NOT_FOUND', 'Child not found')
+
+    const mergedProfile = {
+      ...((existing.profile as Record<string, unknown> | null) ?? {}),
+      ...profileUpdates,
+    }
+
     const updated = await db.child.update({
       where: { id: childId },
-      data: updates,
-      select: {
-        id: true, name: true, familyName: true, age: true, grade: true,
-        school: true, track: true, mascot: true, bestFriend: true,
-        siblings: true, updatedAt: true,
+      data: {
+        profile: mergedProfile,
+        ...(track !== undefined ? { track: track as string } : {}),
       },
+      select: { id: true, track: true, profile: true, updatedAt: true },
     })
 
-    return ok({ child: updated })
+    const mp = (updated.profile as Record<string, unknown> | null) ?? {}
+    return ok({
+      child: {
+        id: updated.id,
+        name: mp.name ?? '',
+        track: updated.track,
+        updatedAt: updated.updatedAt,
+      },
+    })
   })(req, ctx)
 }
 

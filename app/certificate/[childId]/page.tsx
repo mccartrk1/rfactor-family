@@ -15,11 +15,21 @@ export default async function CertificatePage({ params }: Props) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) redirect('/auth/login')
 
-  const child = await db.child.findFirst({
+  const childRecord = await db.child.findFirst({
     where: { id: params.childId, userId: session.user.id },
-    select: { name: true, familyName: true },
+    select: { profile: true, family: { select: { familyName: true } } },
   })
-  if (!child) notFound()
+  if (!childRecord) notFound()
+
+  // name/familyName live in the JSONB `profile` column, not as Child columns.
+  const certProfile = (childRecord.profile as Record<string, unknown> | null) ?? {}
+  const child = {
+    name: typeof certProfile.name === 'string' ? certProfile.name : '',
+    familyName:
+      (typeof certProfile.familyName === 'string' && certProfile.familyName) ||
+      childRecord.family?.familyName ||
+      '',
+  }
 
   const week13 = await db.lessonProgress.findUnique({
     where: { childId_weekNumber: { childId: params.childId, weekNumber: 13 } },

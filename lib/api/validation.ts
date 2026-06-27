@@ -133,6 +133,11 @@ export const validateChildProfile: BodyValidator<ChildProfileInput> = (raw) => {
 // Partial child update (PUT /children/:id) — all fields optional
 export type ChildProfileUpdateInput = Partial<ChildProfileInput>
 export const validateChildProfileUpdate: BodyValidator<ChildProfileUpdateInput> = (raw) => {
+  // Guard against null / non-object bodies before reading fields, otherwise a
+  // `null` body throws instead of failing validation cleanly.
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) {
+    return fail({ _: 'Request body must be an object' })
+  }
   const b = raw as Record<string, unknown>
   const errors: Record<string, string> = {}
   const result: ChildProfileUpdateInput = {}

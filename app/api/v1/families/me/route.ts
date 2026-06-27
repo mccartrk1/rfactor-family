@@ -20,13 +20,11 @@ export const GET = withAuth(async (_req, session) => {
         orderBy: { createdAt: 'asc' },
         select: {
           id: true,
-          name: true,
-          age: true,
-          grade: true,
-          school: true,
           track: true,
           createdAt: true,
           updatedAt: true,
+          // name/age/grade/school live in the JSONB `profile` column.
+          profile: true,
         },
       },
     },
@@ -36,7 +34,22 @@ export const GET = withAuth(async (_req, session) => {
     return err('NOT_FOUND', 'No family found for this account')
   }
 
-  return ok({ family })
+  const str = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v))
+  const children = family.children.map((c: { id: string; track: string; createdAt: Date; updatedAt: Date; profile: unknown }) => {
+    const p = (c.profile as Record<string, unknown> | null) ?? {}
+    return {
+      id: c.id,
+      name: str(p.name),
+      age: str(p.age),
+      grade: str(p.grade),
+      school: str(p.school),
+      track: c.track,
+      createdAt: c.createdAt,
+      updatedAt: c.updatedAt,
+    }
+  })
+
+  return ok({ family: { ...family, children } })
 })
 
 export const PUT = withAuth(

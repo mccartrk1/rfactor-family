@@ -37,7 +37,10 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await getScenarioUseCase.execute({
-    profile: child.profile as ChildProfileData,
+    // `child` is a flat ChildProfile entity (name, age, grade, ... as own
+    // fields). It has no `.profile` property, so the old `child.profile` was
+    // undefined and broke generation. Pass the entity's profile data directly.
+    profile: child as unknown as ChildProfileData,
     childId: childId as string,
     weekNumber,
     attempt: attempt as number,

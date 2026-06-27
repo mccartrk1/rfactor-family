@@ -25,6 +25,8 @@ export async function GET() {
   // Previously returned ALL child fields including flashPoint (biggest home trigger),
   // trustedAdults, hardThing (something scary) — personal info the dashboard doesn't need.
   // Scenario generation happens server-side; clients only need id + name + track.
+  // Profile fields live inside the JSONB `profile` column. Select `profile` and
+  // `track`, then flatten only the fields the client needs.
   const family = await db.family.findUnique({
     where: { userId: session.user.id },
     select: {
@@ -32,23 +34,34 @@ export async function GET() {
         orderBy: { createdAt: 'asc' },
         select: {
           id: true,
-       
-          familyName: true,
-          age: true,
-          grade: true,
-          school: true,
           track: true,
           createdAt: true,
-          // Profile fields needed for onboarding completion UI
-          mascot: true,
-          bestFriend: true,
-          siblings: true,
-        } as any,
+          profile: true,
+        },
       },
     },
   })
 
-  return NextResponse.json({ children: family?.children ?? [] })
+  const str = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v))
+  const children = (family?.children ?? []).map((c: { id: string; track: string; createdAt: Date; profile: unknown }) => {
+    const p = (c.profile as Record<string, unknown> | null) ?? {}
+    return {
+      id: c.id,
+      name: str(p.name),
+      familyName: str(p.familyName),
+      age: str(p.age),
+      grade: str(p.grade),
+      school: str(p.school),
+      track: c.track,
+      createdAt: c.createdAt,
+      // Profile fields needed for onboarding completion UI
+      mascot: str(p.mascot),
+      bestFriend: str(p.bestFriend),
+      siblings: str(p.siblings),
+    }
+  })
+
+  return NextResponse.json({ children })
 }
 
 export async function POST(req: NextRequest) {

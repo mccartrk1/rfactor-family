@@ -157,8 +157,11 @@ export function useLessonMachine({
     }
 
     if (!res.ok) {
+      // Never surface a raw server error to a parent or child. The fallback
+      // scenario is a complete, usable practice moment — present it as intended,
+      // not as a failure.
       scenarioRef.current = FALLBACK_SCENARIO
-      dispatch({ type: 'SCENARIO_READY', error: data.error || 'Generation failed.' })
+      dispatch({ type: 'SCENARIO_READY', error: 'Showing a practice scenario.' })
       return
     }
 

@@ -23,19 +23,28 @@ export default async function CompletePage({ searchParams }: Props) {
   const childId = searchParams.child
   if (!childId) redirect('/dashboard')
 
-  // Verify ownership + load child data
-  const child = await db.child.findFirst({
+  // Verify ownership + load child data. name/familyName live in the JSONB
+  // `profile` column, not as Child columns.
+  const childRecord = await db.child.findFirst({
     where: { id: childId, userId: session.user.id },
     select: {
       id: true,
-      name: true,
-      familyName: true,
       createdAt: true,
+      profile: true,
       family: { select: { familyName: true } },
     },
   })
 
-  if (!child) redirect('/dashboard')
+  if (!childRecord) redirect('/dashboard')
+
+  const completeProfile = (childRecord.profile as Record<string, unknown> | null) ?? {}
+  const child = {
+    id: childRecord.id,
+    name: typeof completeProfile.name === 'string' ? completeProfile.name : '',
+    familyName: typeof completeProfile.familyName === 'string' ? completeProfile.familyName : '',
+    createdAt: childRecord.createdAt,
+    family: childRecord.family,
+  }
 
   // Verify week 13 is actually completed
   const week13 = await db.lessonProgress.findUnique({

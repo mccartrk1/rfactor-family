@@ -110,7 +110,16 @@ export class ChildProfile {
 
   // Converts from Prisma Child model to domain entity
   static fromPrisma(record: Record<string, unknown>): ChildProfile {
-    return ChildProfile.create(record as Partial<ChildProfileData> & { id: string; familyId: string })
+    // Profile fields (name, age, grade, etc.) live inside the JSONB `profile`
+    // column — not as top-level Child columns. Flatten profile back up before
+    // constructing the entity, otherwise `create` reads undefined and throws.
+    const profile = (record.profile as Record<string, unknown> | null) ?? {}
+    return ChildProfile.create({
+      ...profile,
+      id: record.id as string,
+      familyId: record.familyId as string,
+      track: (record.track as string | undefined) ?? (profile.track as string | undefined),
+    } as Partial<ChildProfileData> & { id: string; familyId: string })
   }
 
   // Returns only the fields the DB schema accepts for create/update
