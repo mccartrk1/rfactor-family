@@ -48,7 +48,7 @@ jest.mock('../lib/logger', () => ({
 }))
 
 // Import the validators we can test without DB
-import { validateCreateOrg } from '../app/api/v1/admin/orgs/route'
+import { validateCreateOrg } from '../app/api/v1/admin/orgs/validation'
 
 // ─── Slug validation ──────────────────────────────────────────────────────────
 
