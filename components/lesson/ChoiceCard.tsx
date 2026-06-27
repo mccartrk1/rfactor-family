@@ -15,7 +15,7 @@
 //   - Keyboard: Space/Enter selects
 //   - Result text marked as aria-live when revealed
 
-import { CSSProperties, KeyboardEvent } from 'react'
+import { CSSProperties, KeyboardEvent, useState } from 'react'
 import { C, R, A } from '@/components/tokens'
 
 export type ChoiceVariant = 'discipline' | 'default'
@@ -66,7 +66,9 @@ export function ChoiceCard({
   style: overrideStyle,
 }: ChoiceCardProps) {
   const config = VARIANT_CONFIG[variant]
-  const isSelectable = !selected && !siblingSelected
+  // Each card reveals independently — tapping one no longer locks the other.
+  // A card is tappable until it has been revealed.
+  const isSelectable = !selected
 
   function handleKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     if (!isSelectable) return
@@ -91,8 +93,8 @@ export function ChoiceCard({
         border: `2px solid ${selected ? config.selectedBorder : C.border}`,
         cursor: isSelectable ? 'pointer' : 'default',
         marginBottom: 10,
-        opacity: siblingSelected && !selected ? 0.65 : 1,
-        transition: A.transition,
+        opacity: 1,
+        transition: A.base,
         WebkitTapHighlightColor: 'transparent',
         ...overrideStyle,
       }}
@@ -157,11 +159,23 @@ export function ChoiceGroup({
   disciplineResult,
   defaultChoice,
   defaultResult,
-  selected,
   onSelect,
 }: ChoiceGroupProps) {
+  // Track each path's reveal independently so the user can tap one, then tap
+  // the other and see BOTH outcomes — the whole point of comparing responses.
+  // Parent passes a fresh `key` per scenario, so this resets on "try another".
+  const [revealed, setRevealed] = useState<{ discipline: boolean; default: boolean }>({
+    discipline: false,
+    default: false,
+  })
+
+  const reveal = (path: 'discipline' | 'default') => {
+    setRevealed(prev => ({ ...prev, [path]: true }))
+    onSelect(path)
+  }
+
   return (
-    <div role="radiogroup" aria-label="Choose a response path">
+    <div role="group" aria-label="Compare the two response paths">
       <p style={{
         fontSize: 9,
         fontWeight: 800,
@@ -170,23 +184,23 @@ export function ChoiceGroup({
         color: C.muted,
         margin: '0 0 10px',
       }}>
-        Two paths — tap one
+        Two paths — tap each to compare
       </p>
       <ChoiceCard
         variant="discipline"
         choice={disciplineChoice}
         result={disciplineResult}
-        selected={selected === 'discipline'}
-        siblingSelected={selected === 'default'}
-        onSelect={() => onSelect('discipline')}
+        selected={revealed.discipline}
+        siblingSelected={false}
+        onSelect={() => reveal('discipline')}
       />
       <ChoiceCard
         variant="default"
         choice={defaultChoice}
         result={defaultResult}
-        selected={selected === 'default'}
-        siblingSelected={selected === 'discipline'}
-        onSelect={() => onSelect('default')}
+        selected={revealed.default}
+        siblingSelected={false}
+        onSelect={() => reveal('default')}
       />
     </div>
   )

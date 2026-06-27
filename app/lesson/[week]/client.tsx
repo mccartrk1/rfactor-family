@@ -237,6 +237,7 @@ export default function LessonClient({ weekNumber, childId, lesson, week, prevCh
             )}
 
             <ChoiceGroup
+              key={m.scenario.setup}
               disciplineChoice={m.scenario.disciplinePath.choice}
               disciplineResult={m.scenario.disciplinePath.result}
               defaultChoice={m.scenario.defaultPath.choice}
