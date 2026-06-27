@@ -215,26 +215,55 @@ function hashEmail(email: string): string {
   return createHash('sha256').update(email.toLowerCase()).digest('hex').slice(0, 8)
 }
 
+// An invalid or expired RESEND_API_KEY is a fixable misconfiguration, not a
+// transient send failure. Resend rejects it with an auth-style message. Detect
+// that case so it can be logged loudly (and once), and so we stop calling the
+// API for the life of this warm instance once we know the key is bad.
+let keyRejected = false
+function isInvalidKeyError(message: string): boolean {
+  const m = message.toLowerCase()
+  return (m.includes('api key') && m.includes('invalid')) ||
+    m.includes('unauthorized') ||
+    m.includes('missing api key') ||
+    m.includes('restricted to')
+}
+
 async function send(to: string, subject: string, html: string, tag: string): Promise<EmailResult> {
   if (!process.env.RESEND_API_KEY) {
     logger.warn('email.skipped', { tag, reason: 'RESEND_API_KEY not configured' })
     return { success: false, error: 'Email not configured' }
   }
+  if (keyRejected) {
+    // Already learned this instance's key is bad. Skip the call rather than
+    // hammering Resend and flooding logs; the misconfig was logged once below.
+    logger.warn('email.skipped', { tag, reason: 'RESEND_API_KEY previously rejected as invalid' })
+    return { success: false, error: 'Email key invalid' }
+  }
 
   const recipientHash = hashEmail(to)  // e.g. 'a3f7c291' — correlatable, not reversible
 
+  function handleFailure(message: string): EmailResult {
+    if (isInvalidKeyError(message)) {
+      keyRejected = true
+      logger.error('email.misconfigured', {
+        tag,
+        recipientHash,
+        error: message,
+        action: 'RESEND_API_KEY is set but Resend rejected it as invalid. Replace it in the Vercel project (Settings -> Environment Variables) with a valid key from resend.com, then redeploy. No emails are being delivered until then.',
+      })
+    } else {
+      logger.error('email.send_failed', { tag, recipientHash, error: message })
+    }
+    return { success: false, error: message }
+  }
+
   try {
     const { data, error } = await resend.emails.send({ from: FROM, to, subject, html })
-    if (error) {
-      logger.error('email.send_failed', { tag, recipientHash, error: error.message })
-      return { success: false, error: error.message }
-    }
+    if (error) return handleFailure(error.message)
     logger.info('email.sent', { tag, recipientHash, id: data?.id })
     return { success: true, id: data?.id ?? '' }
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    logger.error('email.send_error', { tag, recipientHash, error: msg })
-    return { success: false, error: msg }
+    return handleFailure(e instanceof Error ? e.message : String(e))
   }
 }
 
