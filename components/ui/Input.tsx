@@ -85,7 +85,7 @@ export function Input({
           )}
         </label>
         {maxLength && (
-          <span aria-live="polite" style={{ fontSize: 10, color: atLimit ? C.danger : nearLimit ? C.warning : C.faint }}>
+          <span aria-live="polite" style={{ fontSize: 10, color: atLimit ? C.danger : nearLimit ? C.warning : C.muted }}>
             {charCount}/{maxLength}
           </span>
         )}
@@ -200,7 +200,7 @@ export function TextArea({
           {optional && <span style={{ fontSize: 11, fontWeight: 400, color: C.muted, marginLeft: 6 }}>(optional)</span>}
         </label>
         {maxLength && (
-          <span aria-live="polite" style={{ fontSize: 10, color: atLimit ? C.danger : nearLimit ? C.warning : C.faint }}>
+          <span aria-live="polite" style={{ fontSize: 10, color: atLimit ? C.danger : nearLimit ? C.warning : C.muted }}>
             {charCount}/{maxLength}
           </span>
         )}

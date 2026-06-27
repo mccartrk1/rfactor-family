@@ -295,7 +295,7 @@ export function ChildProfileEditClient({ child }: Props) {
                     }}
                   />
                   {field.hint && (
-                    <p style={{ fontSize: 11, color: C.faint, margin: '4px 0 0', lineHeight: 1.4 }}>{field.hint}</p>
+                    <p style={{ fontSize: 11, color: C.muted, margin: '4px 0 0', lineHeight: 1.4 }}>{field.hint}</p>
                   )}
                 </div>
               )

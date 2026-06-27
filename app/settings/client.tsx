@@ -287,7 +287,7 @@ export function SettingsClient({ family: initialFamily, children: initialChildre
       </Section>
 
       {/* ── Version ───────────────────────────────────────────────────── */}
-      <p style={{ fontSize: 11, color: C.faint, textAlign: 'center', margin: 0 }}>
+      <p style={{ fontSize: 11, color: C.muted, textAlign: 'center', margin: 0 }}>
         R Factor Family App · v0.1 · {new Date(family.createdAt).toLocaleDateString()}
       </p>
     </>

@@ -10,8 +10,8 @@
 //   dimmed    — other card when sibling is selected
 //
 // Accessibility:
-//   - Both cards form a radiogroup (only one can be selected)
-//   - aria-checked reflects selection
+//   - Each card is an independent toggle button (both can be revealed)
+//   - aria-pressed reflects whether this card has been revealed
 //   - Keyboard: Space/Enter selects
 //   - Result text marked as aria-live when revealed
 
@@ -80,8 +80,8 @@ export function ChoiceCard({
 
   return (
     <div
-      role="radio"
-      aria-checked={selected}
+      role="button"
+      aria-pressed={selected}
       aria-label={`${config.label}: ${choice}`}
       tabIndex={isSelectable ? 0 : -1}
       onClick={isSelectable ? onSelect : undefined}
