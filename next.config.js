@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: { ignoreBuildErrors: true },
+  // Type errors fail the build. A failed build is not promoted, so the live
+  // site keeps serving the last good deploy — this gate cannot break production,
+  // only block a broken deploy. CI runs the same check (prisma generate + tsc).
+  typescript: { ignoreBuildErrors: false },
   images: {
     unoptimized: true,
     domains: ['lh3.googleusercontent.com'],
