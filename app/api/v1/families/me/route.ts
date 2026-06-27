@@ -36,7 +36,7 @@ export const GET = withAuth(async (_req, session) => {
 
   const str = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v))
   const children = family.children.map((c: { id: string; track: string; createdAt: Date; updatedAt: Date; profile: unknown }) => {
-    const p = (c.profile as Record<string, unknown> | null) ?? {}
+    const p = (c.profile as unknown as Record<string, unknown> | null) ?? {}
     return {
       id: c.id,
       name: str(p.name),

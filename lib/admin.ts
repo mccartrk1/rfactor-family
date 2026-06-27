@@ -494,7 +494,7 @@ export async function getOrgDetail(slug: string): Promise<OrgDetail | null> {
     tier: org.tier,
     isActive: org.isActive,
     maxFamilies: org.maxFamilies,
-    features: (org.features as Record<string, boolean>) ?? {},
+    features: (org.features as unknown as Record<string, boolean>) ?? {},
     createdAt: org.createdAt,
     updatedAt: org.updatedAt,
     families,

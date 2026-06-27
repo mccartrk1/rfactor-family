@@ -30,7 +30,7 @@ export const GET = withOwnership(async (_req, _session, { childId }) => {
 
   if (!child) return err('NOT_FOUND', 'Child not found')
 
-  const p = (child.profile as Record<string, unknown> | null) ?? {}
+  const p = (child.profile as unknown as Record<string, unknown> | null) ?? {}
   const str = (v: unknown) => (typeof v === 'string' ? v : v == null ? '' : String(v))
 
   // Stable display fields vs. the remaining sensitive profile fields
@@ -81,7 +81,7 @@ export async function PUT(req: NextRequest, ctx: Params) {
     if (!existing) return err('NOT_FOUND', 'Child not found')
 
     const mergedProfile = {
-      ...((existing.profile as Record<string, unknown> | null) ?? {}),
+      ...((existing.profile as unknown as Record<string, unknown> | null) ?? {}),
       ...profileUpdates,
     }
 
@@ -94,7 +94,7 @@ export async function PUT(req: NextRequest, ctx: Params) {
       select: { id: true, track: true, profile: true, updatedAt: true },
     })
 
-    const mp = (updated.profile as Record<string, unknown> | null) ?? {}
+    const mp = (updated.profile as unknown as Record<string, unknown> | null) ?? {}
     return ok({
       child: {
         id: updated.id,

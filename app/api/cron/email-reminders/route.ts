@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
     const email = lesson.child.family?.user?.email
     if (!email) { results.skipped++; continue }
 
-    const profile = lesson.child.profile as Record<string, string>
+    const profile = lesson.child.profile as unknown as Record<string, string>
     const childName = profile.name ?? 'your child'
     const weekData = WEEKS.find(w => w.w === nextWeek)
     if (!weekData) { results.skipped++; continue }
@@ -188,7 +188,7 @@ export async function GET(req: NextRequest) {
     const daysSince = Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24))
     if (daysSince < REENGAGEMENT_DAYS) { results.skipped++; continue }
 
-    const profile = child.profile as Record<string, string>
+    const profile = child.profile as unknown as Record<string, string>
     const childName = profile.name ?? 'your child'
 
     const result = await sendReengagementEmail({

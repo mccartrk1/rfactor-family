@@ -31,7 +31,7 @@ export class DatabaseScenarioCache implements IScenarioCache {
       select: { scenario: true },
     })
 
-    return record ? (record.scenario as ScenarioPayload) : null
+    return record ? (record.scenario as unknown as ScenarioPayload) : null
   }
 
   async set(

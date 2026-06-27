@@ -106,7 +106,7 @@ export async function batchPregenerate(childId: string): Promise<{
 
       try {
         // Generate via Claude
-        const profile = child.profile as Parameters<typeof generator.generate>[0]
+        const profile = child.profile as unknown as Parameters<typeof generator.generate>[0]
         const scenario = await generator.generate(profile, week, attempt)
 
         // Write to cache
