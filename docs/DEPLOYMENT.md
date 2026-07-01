@@ -73,14 +73,23 @@ Settings → Secrets and variables → Actions → New repository secret:
 
 ### 6. Database migrations
 
-Run in order, once, against production Supabase:
+Run in order, once, against production Supabase. Migrations use the DIRECT
+connection (DDL cannot run through the transaction pooler):
 
 ```bash
-psql "$DATABASE_URL" -f prisma/migrations/manual/001_index_optimization.sql
-psql "$DATABASE_URL" -f prisma/migrations/manual/002_child_userid_denormalize.sql
-psql "$DATABASE_URL" -f prisma/migrations/manual/003_child_profile_jsonb.sql
-psql "$DATABASE_URL" -f prisma/migrations/manual/004_admin_aggregate_view.sql
+psql "$DIRECT_URL" -f prisma/migrations/manual/001_index_optimization.sql
+psql "$DIRECT_URL" -f prisma/migrations/manual/002_child_userid_denormalize.sql
+psql "$DIRECT_URL" -f prisma/migrations/manual/003_child_profile_jsonb.sql
+psql "$DIRECT_URL" -f prisma/migrations/manual/004_admin_aggregate_view.sql
+psql "$DIRECT_URL" -f prisma/migrations/manual/005_organization_multitenancy.sql
+psql "$DIRECT_URL" -f prisma/migrations/manual/006_billing_fields.sql
+psql "$DIRECT_URL" -f prisma/migrations/manual/007_enable_rls.sql
 ```
+
+Migration 007 enables Row-Level Security on every table, which closes the
+Supabase data-API exposure (rls_disabled_in_public / sensitive_columns_exposed).
+The app is unaffected because it reaches Postgres through Prisma as the
+`postgres` role, which bypasses RLS.
 
 After 003 runs and code is deployed and verified, run the column drop:
 ```sql
@@ -283,6 +292,8 @@ At current schema: ~1KB/child profile + ~200 bytes/week progress = ~15KB per chi
 - [ ] Google OAuth redirect URIs updated to production domain
 - [ ] Supabase → Authentication → disabled (we use NextAuth, not Supabase Auth)
 - [ ] Supabase → API → anon key NOT in any app code or env file
+- [ ] Migration 007 applied — RLS enabled on every table (run: `SELECT tablename FROM pg_tables WHERE schemaname='public' AND rowsecurity=false;` returns zero rows)
+- [ ] Supabase → Advisors → Security → no rls_disabled_in_public or sensitive_columns_exposed findings
 - [ ] Admin email list contains only Ryan's actual email(s)
 - [ ] `npm audit --audit-level=high` returns zero findings
 - [ ] `/api/v1/health` returns `{"status":"ok","db":"ok"}`
